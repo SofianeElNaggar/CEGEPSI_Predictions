@@ -1,0 +1,89 @@
+# Fichiers de données volumineux
+*.csv
+*.parquet
+*.pdf
+*.png
+*.rar
+*.zip
+*.xml
+*.7z
+*.tar
+*.tar.gz
+*.gz
+
+# Fichiers temporaires et de sauvegarde
+*.tmp
+*.temp
+*.bak
+*.backup
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+venv/
+env/
+ENV/
+.venv
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# IDEs - VSCode
+.vscode/
+*.code-workspace
+.history/
+
+# IDEs - IntelliJ IDEA / PyCharm
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# IDEs - Cursor AI
+.cursor/
+.cursorrules
+.cursorignore
+
+# Résultats et outputs
+results/
+output/
+*.log
+
+# Données et datasets
+dataset/
+dataset/*.csv
+dataset/*.parquet
+dataset/*.rar
+dataset/*.zip
+dataset/*.pdf
+
+# Fichiers de configuration locaux
+.env
+.env.local
+config.local.*
