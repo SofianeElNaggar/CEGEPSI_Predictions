@@ -71,9 +71,9 @@ class Trainer:
                         train_pinn_losses.append(l.item())
                         
                 if isinstance(pinn_loss_sum, torch.Tensor):
-                     loss = loss + (pinn_loss_sum * self.config.PINN_LOSS_WEIGHT)
+                    loss = loss + (pinn_loss_sum * self.config.PINN_LOSS_WEIGHT)
                 elif pinn_loss_sum > 0:
-                     loss = loss + (pinn_loss_sum * self.config.PINN_LOSS_WEIGHT)
+                    loss = loss + (pinn_loss_sum * self.config.PINN_LOSS_WEIGHT)
                 
                 loss.backward()
                 self.optimizer.step()

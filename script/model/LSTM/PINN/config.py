@@ -42,7 +42,7 @@ class Config:
 
     # --- Target & Feature Definitions ---
     ALL_TARGETS = [
-        "temperature (°C)",
+        #"temperature (°C)",
         #"chlorophyll (mg m-3)",
         #"turbidity (NTU)",
         #"pH",
@@ -58,7 +58,7 @@ class Config:
         #"pH",
         "salinity (PSS-78)",
         #"potential_density (kg m-3)",
-        #"dissolved_oxygen (ml l-1)",
+        "dissolved_oxygen (ml l-1)",
         #"pressure (dbar)",
 
         #------------------------------------

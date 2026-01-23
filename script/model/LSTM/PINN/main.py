@@ -34,7 +34,7 @@ def main():
                 'doy_sin',
                 'doy_cos',
                 in_targets=False,
-                weight=config.PINN_WEIGHTS.get('doy', 1.0)
+                weight=config.PINN_WEIGHTS.get('doy')
             ),
             # Add other PINNs if targets are present
         ]
@@ -49,7 +49,7 @@ def main():
                     wind_name="Spd of Max Gust (km/h)",
                     sal_name="salinity (PSS-78)",
                     tide_name="tide_range (m)",
-                    weight=config.PINN_WEIGHTS.get('dissolved_oxygen', 1.0)
+                    weight=config.PINN_WEIGHTS.get('dissolved_oxygen')
                  )
              )
         
@@ -63,7 +63,7 @@ def main():
                     do_name="dissolved_oxygen (ml l-1)",
                     wind_name="Spd of Max Gust (km/h)",
                     tide_name="tide_range (m)",
-                    weight=config.PINN_WEIGHTS.get('ph', 1.0)
+                    weight=config.PINN_WEIGHTS.get('ph')
                  )
              )
 
