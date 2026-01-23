@@ -30,7 +30,9 @@ class Config:
     
     # --- Weights (Loss) ---
     # Global weights
-    LSTM_LOSS_WEIGHT = 1.0
+    # --- Weights (Loss) ---
+    # Global weights
+    GRU_LOSS_WEIGHT = 1.0
     PINN_LOSS_WEIGHT = 1.0  # Multiplicateur global pour la partie PINN
 
     # Individual PINN weights
@@ -42,7 +44,7 @@ class Config:
 
     # --- Target & Feature Definitions ---
     ALL_TARGETS = [
-        #"temperature (°C)",
+        "temperature (°C)",
         #"chlorophyll (mg m-3)",
         #"turbidity (NTU)",
         #"pH",
@@ -60,7 +62,7 @@ class Config:
         #"potential_density (kg m-3)",
         "dissolved_oxygen (ml l-1)",
         #"pressure (dbar)",
-
+        
         #------------------------------------
 
         "tide_range (m)",
@@ -77,8 +79,8 @@ class Config:
     TIME_FEATURE_COLS = ["doy_sin", "doy_cos"]
 
     # --- Output ---
-    OUTPUT_DIR = f"results/prediction/LSTM/PINN/{AGG_METHOD}"
-    OUTPUT_PDF_TEMPLATE = f"{OUTPUT_DIR}/LSTM_predictions_{AGG_METHOD}.pdf"
+    OUTPUT_DIR = f"results/prediction/GRU/PINN/{AGG_METHOD}"
+    OUTPUT_PDF_TEMPLATE = f"{OUTPUT_DIR}/GRU_predictions_{AGG_METHOD}.pdf"
     
     @classmethod
     def get_output_path(cls):

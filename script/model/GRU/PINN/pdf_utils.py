@@ -25,7 +25,7 @@ def save_results_pdf(out_template, target_cols, feature_cols, dates, true_target
 
             fig_sum = plt.figure(figsize=(8.27, 11.69))
             fig_sum.clf()
-            txt = "Résultats LSTM multivarié (après OLS)\n\n"
+            txt = "Résultats GRU multivarié (après OLS)\n\n"
             txt += (f"Valeur d'entré uniquement : "
                     f"\n{feature_cols[:5]}\n{feature_cols[5:]}\n\n")
             txt += f"Valeur d'entré et de sortie : {target_cols}\n\n"

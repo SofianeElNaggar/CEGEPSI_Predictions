@@ -14,16 +14,16 @@ class SeqDataset(Dataset):
     def __getitem__(self, idx):
         return self.X[idx], self.y[idx]
 
-class LSTMModel(nn.Module):
+class GRUModel(nn.Module):
     def __init__(self, n_features, hidden_size=128, hidden2=64, n_outputs=1, dropout=0.2):
         super().__init__()
-        self.lstm1 = nn.LSTM(input_size=n_features, hidden_size=hidden_size, batch_first=True)
-        self.lstm2 = nn.LSTM(input_size=hidden_size, hidden_size=hidden2, batch_first=True)
+        self.gru1 = nn.GRU(input_size=n_features, hidden_size=hidden_size, batch_first=True)
+        self.gru2 = nn.GRU(input_size=hidden_size, hidden_size=hidden2, batch_first=True)
         self.dropout = nn.Dropout(dropout)
         self.fc = nn.Linear(hidden2, n_outputs)
     def forward(self, x):
-        out, _ = self.lstm1(x)
-        out, _ = self.lstm2(out)
+        out, _ = self.gru1(x)
+        out, _ = self.gru2(out)
         last = out[:, -1, :]
         last = self.dropout(last)
         out = self.fc(last)

@@ -3,7 +3,7 @@ import traceback
 import torch
 from config import Config
 from data_manager import DataManager
-from model import LSTMModel
+from model import GRUModel
 from trainer import Trainer
 from evaluator import Evaluator
 from pinns import CosSinPINN, DissolvedOxygenPINN, pHPINN
@@ -18,11 +18,11 @@ def main():
         dm.prepare_data(target_cols=config.ALL_TARGETS)
         
         # 3. Model Initialization
-        model = LSTMModel(
+        model = GRUModel(
             n_features=dm.n_features,
             n_outputs=dm.n_outputs,
-            hidden_size=128,
-            hidden2=64,
+            hidden_size=256,
+            hidden2=128,
             dropout=0.2
         )
         

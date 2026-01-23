@@ -56,8 +56,8 @@ class Trainer:
                 self.optimizer.zero_grad()
                 out = self.model(xb)
                 
-                # LSTM Loss
-                loss = weighted_mse_loss(out, yb, w) * self.config.LSTM_LOSS_WEIGHT
+                # GRU Loss
+                loss = weighted_mse_loss(out, yb, w) * self.config.GRU_LOSS_WEIGHT
                 
                 # PINN Loss
                 pinn_loss_sum = 0.0
@@ -93,7 +93,7 @@ class Trainer:
                     yb = yb.to(self.device)
                     
                     out = self.model(xb)
-                    loss = weighted_mse_loss(out, yb, w) * self.config.LSTM_LOSS_WEIGHT
+                    loss = weighted_mse_loss(out, yb, w) * self.config.GRU_LOSS_WEIGHT
                     
                     pinn_loss_sum = 0.0
                     for pinn in self.pinns:
