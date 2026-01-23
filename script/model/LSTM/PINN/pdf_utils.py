@@ -3,9 +3,8 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import re
 from data_utils import get_next_pdf_path
-from utils import INPUT_ONLY_COLS, ALL_TARGETS
 
-def save_results_pdf(out_template, target_cols, dates, true_targets, transformed_preds, best_params, rmses, r2s, train_df, test_df):
+def save_results_pdf(out_template, target_cols, feature_cols, dates, true_targets, transformed_preds, best_params, rmses, r2s, train_df, test_df):
     names_safe = "_".join([re.sub(r'[^A-Za-z0-9]+', '', c) for c in target_cols])
     out_template = out_template.format(names=names_safe)
     out_pdf = get_next_pdf_path(out_template)
@@ -28,8 +27,8 @@ def save_results_pdf(out_template, target_cols, dates, true_targets, transformed
             fig_sum.clf()
             txt = "Résultats LSTM multivarié (après OLS)\n\n"
             txt += (f"Valeur d'entré uniquement : "
-                    f"\n{INPUT_ONLY_COLS[:5]}\n{INPUT_ONLY_COLS[5:]}\n\n")
-            txt += f"Valeur d'entré et de sortie : {ALL_TARGETS}\n\n"
+                    f"\n{feature_cols[:5]}\n{feature_cols[5:]}\n\n")
+            txt += f"Valeur d'entré et de sortie : {target_cols}\n\n"
             txt += f"Période entraînement : {train_df.index.min().date()} -> {train_df.index.max().date()}\n"
             txt += f"Période test : {test_df.index.min().date()} -> {test_df.index.max().date()}\n\n"
             txt += "Metrics par variable (après transformation optimale) :\n"
