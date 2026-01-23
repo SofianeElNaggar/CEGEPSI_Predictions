@@ -42,12 +42,12 @@ class Config:
 
     # --- Target & Feature Definitions ---
     ALL_TARGETS = [
-        #"temperature (°C)",
+        "temperature (°C)",
         #"chlorophyll (mg m-3)",
         #"turbidity (NTU)",
         #"pH",
         #"salinity (PSS-78)",
-        "dissolved_oxygen (ml l-1)",
+        #"dissolved_oxygen (ml l-1)",
     ]
     
     # Colonnes utilisées UNIQUEMENT comme entrées (jamais prédites)
