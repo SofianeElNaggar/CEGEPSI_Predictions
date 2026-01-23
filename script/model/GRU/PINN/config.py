@@ -49,7 +49,7 @@ class Config:
         #"turbidity (NTU)",
         #"pH",
         #"salinity (PSS-78)",
-        "dissolved_oxygen (ml l-1)",
+        #"dissolved_oxygen (ml l-1)",
     ]
     
     # Colonnes utilisées UNIQUEMENT comme entrées (jamais prédites)

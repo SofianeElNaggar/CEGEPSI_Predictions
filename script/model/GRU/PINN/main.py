@@ -21,8 +21,8 @@ def main():
         model = GRUModel(
             n_features=dm.n_features,
             n_outputs=dm.n_outputs,
-            hidden_size=256,
-            hidden2=128,
+            hidden_size=128,
+            hidden2=64,
             dropout=0.2
         )
         
