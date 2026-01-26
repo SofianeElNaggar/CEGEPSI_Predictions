@@ -10,7 +10,7 @@ class Config:
     DEPTH_CENTER = 1.0
     DEPTH_TOLERANCE = 0.1
     # Agg: 'median' ou 'mean'
-    AGG_METHOD = "mean"
+    AGG_METHOD = "median"
     
     # Période d'utilisation des données
     START_DATE = "2000-01-01"
@@ -30,8 +30,6 @@ class Config:
     
     # --- Weights (Loss) ---
     # Global weights
-    # --- Weights (Loss) ---
-    # Global weights
     GRU_LOSS_WEIGHT = 1.0
     PINN_LOSS_WEIGHT = 1.0  # Multiplicateur global pour la partie PINN
 
@@ -49,7 +47,7 @@ class Config:
         #"turbidity (NTU)",
         #"pH",
         #"salinity (PSS-78)",
-        #"dissolved_oxygen (ml l-1)",
+        "dissolved_oxygen (ml l-1)",
     ]
     
     # Colonnes utilisées UNIQUEMENT comme entrées (jamais prédites)
@@ -79,8 +77,8 @@ class Config:
     TIME_FEATURE_COLS = ["doy_sin", "doy_cos"]
 
     # --- Output ---
-    OUTPUT_DIR = f"results/prediction/GRU/PINN/{AGG_METHOD}"
-    OUTPUT_PDF_TEMPLATE = f"{OUTPUT_DIR}/GRU_predictions_{AGG_METHOD}.pdf"
+    OUTPUT_DIR = f"results/prediction/GRU/PINNxCNN/{AGG_METHOD}"
+    OUTPUT_PDF_TEMPLATE = f"{OUTPUT_DIR}/CNNxGRU_predictions_{AGG_METHOD}.pdf"
     
     @classmethod
     def get_output_path(cls):

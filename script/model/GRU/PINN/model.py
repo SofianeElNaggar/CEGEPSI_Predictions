@@ -29,6 +29,40 @@ class GRUModel(nn.Module):
         out = self.fc(last)
         return out
 
+from CNN import CNNFeatureExtractor
+
+class CNNGRUModel(nn.Module):
+    def __init__(self, n_features, cnn_out_channels=64, hidden_size=128, hidden2=64, n_outputs=1, dropout=0.2):
+        super().__init__()
+        # CNN prend n_features et sort cnn_out_channels
+        self.cnn = CNNFeatureExtractor(n_features, out_channels=cnn_out_channels)
+        
+        # Le GRU prend maintenant cnn_out_channels comme input_size
+        self.gru1 = nn.GRU(input_size=cnn_out_channels, hidden_size=hidden_size, batch_first=True)
+        self.gru2 = nn.GRU(input_size=hidden_size, hidden_size=hidden2, batch_first=True)
+        self.dropout = nn.Dropout(dropout)
+        self.fc = nn.Linear(hidden2, n_outputs)
+
+    def forward(self, x):
+        # x: (batch, seq_len, n_features)
+        
+        # Passage par CNN -> (batch, seq_len, cnn_out_channels)
+        cnn_out = self.cnn(x)
+
+        if not hasattr(self, '_printed'):
+            print("x shape:", x.shape)
+            print("cnn_out shape:", cnn_out.shape)
+            self._printed = True
+        
+        # Passage par GRU
+        out, _ = self.gru1(cnn_out)
+        out, _ = self.gru2(out)
+        
+        last = out[:, -1, :]
+        last = self.dropout(last)
+        out = self.fc(last)
+        return out
+
 def weighted_mse_loss(pred, target, weights):
     w = torch.tensor(weights, dtype=pred.dtype, device=pred.device).reshape(1, -1)
     se = (pred - target) ** 2

@@ -3,7 +3,7 @@ import traceback
 import torch
 from config import Config
 from data_manager import DataManager
-from model import GRUModel
+from model import CNNGRUModel
 from trainer import Trainer
 from evaluator import Evaluator
 from pinns import CosSinPINN, DissolvedOxygenPINN, pHPINN
@@ -18,12 +18,13 @@ def main():
         dm.prepare_data(target_cols=config.ALL_TARGETS)
         
         # 3. Model Initialization
-        model = GRUModel(
+        model = CNNGRUModel(
             n_features=dm.n_features,
             n_outputs=dm.n_outputs,
             hidden_size=128,
             hidden2=64,
-            dropout=0.2
+            dropout=0.2,
+            cnn_out_channels=64
         )
         
         # 4. PINN Setup
@@ -53,7 +54,7 @@ def main():
                  )
              )
         
-        if "pH" in dm.target_cols:
+        if "pHa" in dm.target_cols:
              pinns.append(
                  pHPINN(
                     ph_name="pH",
