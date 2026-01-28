@@ -30,15 +30,15 @@ class Config:
 
     # VMD Hyperparameters
     VMD_ALPHA = 2000       # Bandwidth constraint
-    VMD_TAU = 0.1           # Noise-tolerance (no strict fidelity enforcement)
-    VMD_K = 3              # Number of modes
+    VMD_TAU = 0.01           # Noise-tolerance (no strict fidelity enforcement)
+    VMD_K = 6              # Number of modes
     VMD_DC = 0             # No DC part imposed
     VMD_INIT = 1           # Initialize omegas uniformly
     VMD_TOL = 1e-7         # Convergence tolerance
     
     # --- Weights (Loss) ---
     # Global weights
-    GRU_LOSS_WEIGHT = 0.0
+    GRU_LOSS_WEIGHT = 3.0
     PINN_LOSS_WEIGHT = 1.0  # Multiplicateur global pour la partie PINN
 
     # Individual PINN weights
@@ -86,7 +86,7 @@ class Config:
 
     # --- VMD Configuration ---
     VMD_ENABLED = True
-    VMD_COLS = ALL_TARGETS#+INPUT_ONLY_COLS
+    VMD_COLS = ALL_TARGETS + INPUT_ONLY_COLS
 
     # --- Output ---
     OUTPUT_DIR = f"results/prediction/GRU/VMDxCNNxGRUxPINN/{AGG_METHOD}"
