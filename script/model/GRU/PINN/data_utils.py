@@ -4,8 +4,54 @@ import re
 from pathlib import Path
 import numpy as np
 import pandas as pd
+from vmdpy import VMD
 
 from sklearn.preprocessing import StandardScaler
+
+def apply_vmd(df, config):
+    if not config.VMD_ENABLED:
+        return df
+    
+    if VMD is None:
+        print("VMD introuvable. Skip.")
+        return df
+
+    print("\n" + "-"*40)
+    print("Traitement VMD...")
+    
+    # Parametres VMD
+    alpha = config.VMD_ALPHA
+    tau = config.VMD_TAU
+    K = config.VMD_K
+    DC = config.VMD_DC
+    init = config.VMD_INIT
+    tol = config.VMD_TOL
+    
+    df_new = df.copy()
+    
+    for col in config.VMD_COLS:
+        if col not in df.columns:
+            print(f"Colonne {col} absente pour VMD. Skip.")
+            continue
+            
+        print(f" -> Decomposition VMD de '{col}' en {K} modes")
+        f = df[col].values
+        
+        # VMD requires 1D array, even length preferred but not strictly required by python impl often?
+        # vmdpy: u, u_hat, omega = VMD(f, alpha, tau, K, DC, init, tol)
+        try:
+            u, u_hat, omega = VMD(f, alpha, tau, K, DC, init, tol)
+            
+            # u shape: (K, N)
+            for k in range(K):
+                mode_name = f"{col}_mode{k+1}"
+                df_new[mode_name] = u[k, :]
+        except Exception as e:
+            print(f"Erreur VMD sur {col}: {e}")
+            
+    print("-"*40 + "\n")
+    return df_new
+
 
 def get_next_pdf_path(template_path_str):
     p = Path(template_path_str)

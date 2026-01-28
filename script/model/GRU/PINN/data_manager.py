@@ -7,7 +7,7 @@ from sklearn.preprocessing import StandardScaler
 
 from data_utils import (
     load_and_filter, aggregate_daily, reindex_and_impute,
-    add_time_features, create_sequences_multivar
+    add_time_features, create_sequences_multivar, apply_vmd
 )
 from model import SeqDataset # We might need to move SeqDataset or import it
 
@@ -68,9 +68,18 @@ class DataManager:
              daily_full.index = daily_full.index.tz_localize('UTC')
 
         # 4. Feature Engineering
+        daily_full = apply_vmd(daily_full, self.config)
+        
         self.daily_full_tf = add_time_features(daily_full)
         
-        self.feature_cols = list(target_cols) + list(self.config.INPUT_ONLY_COLS) + list(self.config.TIME_FEATURE_COLS)
+        # Identification des colonnes VMD
+        vmd_cols = []
+        if self.config.VMD_ENABLED:
+            for col in self.config.VMD_COLS:
+                for k in range(self.config.VMD_K):
+                    vmd_cols.append(f"{col}_mode{k+1}")
+        
+        self.feature_cols = list(target_cols) + list(self.config.INPUT_ONLY_COLS) + list(self.config.TIME_FEATURE_COLS) + vmd_cols
         
         train_df_tf = self.daily_full_tf[self.daily_full_tf.index < self.train_end_dt]
         self.test_df = self.daily_full_tf[(self.daily_full_tf.index >= self.train_end_dt) & (self.daily_full_tf.index < test_end_dt)]

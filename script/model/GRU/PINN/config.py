@@ -10,7 +10,7 @@ class Config:
     DEPTH_CENTER = 1.0
     DEPTH_TOLERANCE = 0.1
     # Agg: 'median' ou 'mean'
-    AGG_METHOD = "median"
+    AGG_METHOD = "mean"
     
     # Période d'utilisation des données
     START_DATE = "2000-01-01"
@@ -27,10 +27,18 @@ class Config:
     
     # --- Prediction ---
     RECURSIVE_FORECAST = True
+
+    # VMD Hyperparameters
+    VMD_ALPHA = 2000       # Bandwidth constraint
+    VMD_TAU = 0.1           # Noise-tolerance (no strict fidelity enforcement)
+    VMD_K = 3              # Number of modes
+    VMD_DC = 0             # No DC part imposed
+    VMD_INIT = 1           # Initialize omegas uniformly
+    VMD_TOL = 1e-7         # Convergence tolerance
     
     # --- Weights (Loss) ---
     # Global weights
-    GRU_LOSS_WEIGHT = 1.0
+    GRU_LOSS_WEIGHT = 0.0
     PINN_LOSS_WEIGHT = 1.0  # Multiplicateur global pour la partie PINN
 
     # Individual PINN weights
@@ -76,9 +84,13 @@ class Config:
     
     TIME_FEATURE_COLS = ["doy_sin", "doy_cos"]
 
+    # --- VMD Configuration ---
+    VMD_ENABLED = True
+    VMD_COLS = ALL_TARGETS#+INPUT_ONLY_COLS
+
     # --- Output ---
-    OUTPUT_DIR = f"results/prediction/GRU/PINNxCNN/{AGG_METHOD}"
-    OUTPUT_PDF_TEMPLATE = f"{OUTPUT_DIR}/CNNxGRU_predictions_{AGG_METHOD}.pdf"
+    OUTPUT_DIR = f"results/prediction/GRU/VMDxCNNxGRUxPINN/{AGG_METHOD}"
+    OUTPUT_PDF_TEMPLATE = f"{OUTPUT_DIR}/VMDxCNNxGRUxPINN_predictions_{AGG_METHOD}.pdf"
     
     @classmethod
     def get_output_path(cls):
