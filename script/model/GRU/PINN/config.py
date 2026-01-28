@@ -30,10 +30,10 @@ class Config:
 
     # VMD Hyperparameters
     VMD_ALPHA = 2000       # Bandwidth constraint
-    VMD_TAU = 0.01           # Noise-tolerance (no strict fidelity enforcement)
+    VMD_TAU = 0.01         # Noise-tolerance
     VMD_K = 8              # Number of modes
     VMD_DC = 0             # No DC part imposed
-    VMD_INIT = 1           # Initialize omegas uniformly
+    VMD_INIT = 0           # Initialize omegas uniformly
     VMD_TOL = 1e-7         # Convergence tolerance
     
     # --- Weights (Loss) ---
