@@ -23,7 +23,7 @@ class Config:
     BATCH_SIZE = 64
     LEARNING_RATE = 1e-3
     PATIENCE = 8
-    VALIDATION_FRAC = 0.05
+    VALIDATION_FRAC = 0.15
     
     # --- Prediction ---
     RECURSIVE_FORECAST = True
@@ -31,7 +31,7 @@ class Config:
     # VMD Hyperparameters
     VMD_ALPHA = 2000       # Bandwidth constraint
     VMD_TAU = 0.01           # Noise-tolerance (no strict fidelity enforcement)
-    VMD_K = 6              # Number of modes
+    VMD_K = 8              # Number of modes
     VMD_DC = 0             # No DC part imposed
     VMD_INIT = 1           # Initialize omegas uniformly
     VMD_TOL = 1e-7         # Convergence tolerance
