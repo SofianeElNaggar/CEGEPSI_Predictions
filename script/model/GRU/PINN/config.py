@@ -86,7 +86,7 @@ class Config:
 
     # --- VMD Configuration ---
     VMD_ENABLED = True
-    VMD_COLS = ALL_TARGETS + INPUT_ONLY_COLS
+    VMD_COLS = ALL_TARGETS# + INPUT_ONLY_COLS
 
     # --- Output ---
     OUTPUT_DIR = f"results/prediction/GRU/VMDxCNNxGRUxPINN/{AGG_METHOD}"
