@@ -2,61 +2,58 @@
 import os
 
 class Config:
-    # --- Data Paths ---
+    # --- Chemins ---
     PARQUET_PATH = "dataset/OMDS-CTD-meteogc-data.parquet"
-    
-    # --- Preprocessing ---
-    # profondeur ciblée (ex 1.0m +/- tol)
-    DEPTH_CENTER = 1.0
-    DEPTH_TOLERANCE = 0.1
-    # Agg: 'median' ou 'mean'
-    AGG_METHOD = "mean"
-    
-    # Période d'utilisation des données
+
+    # --- Prétraitement ---
+    DEPTH_CENTER    = 1.0    # Profondeur cible (m)
+    DEPTH_TOLERANCE = 0.1    # Tolérance autour de la profondeur cible
+    AGG_METHOD      = "mean" # Méthode d'agrégation journalière : 'mean' ou 'median'
+
+    # --- Période temporelle ---
     START_DATE = "2000-01-01"
-    TRAIN_END = "2020-01-01"
-    TEST_END = "2025-01-01"
+    TRAIN_END  = "2020-01-01"
+    TEST_END   = "2025-01-01"
 
-    # --- Training Hyperparameters ---
-    SEQUENCE_LENGTH = 60   
-    N_EPOCHS = 60
-    BATCH_SIZE = 64
-    LEARNING_RATE = 1e-3
-    PATIENCE = 8
+    # --- Hyperparamètres d'entraînement ---
+    SEQUENCE_LENGTH = 60
+    N_EPOCHS        = 60
+    BATCH_SIZE      = 64
+    LEARNING_RATE   = 1e-3
+    PATIENCE        = 8
     VALIDATION_FRAC = 0.15
-    
-    # --- Prediction ---
-    RECURSIVE_FORECAST = True
 
-    # ── VMD Hyperparameters ─────────────────────────────────────────────────
-    VMD_ALPHA = 2000       # Bandwidth constraint
-    VMD_TAU   = 0.01       # Noise-tolerance
-    VMD_K     = 8          # Number of modes
-    VMD_DC    = 0          # No DC part imposed
-    VMD_INIT  = 0          # Initialize omegas uniformly
-    VMD_TOL   = 1e-7       # Convergence tolerance
+    # --- Mode de prédiction ---
+    RECURSIVE_FORECAST = True  # True : récursif (pas d'observations futures), False : walk-forward
 
-    # ── CEEMDAN Hyperparameters ──────────────────────────────────────────────
-    CEEMDAN_TRIALS   = 100   # Nombre d'essais (ensembles)
-    CEEMDAN_EPSILON  = 0.2   # Amplitude du bruit ajouté (fraction de std)
-    CEEMDAN_MAX_IMFS = None  # Nombre max d'IMFs (None = toutes)
+    # ── Hyperparamètres VMD ────────────────────────────────────────────────────
+    VMD_ALPHA = 2000       # Contrainte de bande passante
+    VMD_TAU   = 0.01       # Tolérance au bruit
+    VMD_K     = 8          # Nombre de modes
+    VMD_DC    = 0          # Pas de composante DC imposée
+    VMD_INIT  = 0          # Initialisation uniforme des fréquences centrales
+    VMD_TOL   = 1e-7       # Tolérance de convergence
 
-    # ── SSA Hyperparameters ──────────────────────────────────────────────────
-    SSA_WINDOW = 365         # Taille de la fenêtre de Hankel (lags)
-    
-    # --- Weights (Loss) ---
-    # Global weights
-    GRU_LOSS_WEIGHT = 3.0
-    PINN_LOSS_WEIGHT = 1.0  # Multiplicateur global pour la partie PINN
+    # ── Hyperparamètres CEEMDAN ───────────────────────────────────────────────
+    CEEMDAN_TRIALS   = 100   # Nombre de réalisations d'ensemble
+    CEEMDAN_EPSILON  = 0.2   # Amplitude du bruit ajouté (fraction de l'écart-type)
+    CEEMDAN_MAX_IMFS = None  # Nombre max d'IMFs à conserver (None = toutes)
 
-    # Individual PINN weights
+    # ── Hyperparamètres SSA ───────────────────────────────────────────────────
+    SSA_WINDOW = 365         # Taille de la fenêtre de Hankel (en jours)
+
+    # --- Poids de la fonction de perte ---
+    GRU_LOSS_WEIGHT  = 3.0   # Poids de la perte MSE du GRU
+    PINN_LOSS_WEIGHT = 1.0   # Multiplicateur global de la perte PINN
+
+    # Poids individuels par contrainte physique
     PINN_WEIGHTS = {
-        'doy': 1.0,
+        'doy':              1.0,
         'dissolved_oxygen': 1.0,
-        'ph': 1.0
+        'ph':               1.0
     }
 
-    # --- Target & Feature Definitions ---
+    # --- Variables cibles et d'entrée ---
     ALL_TARGETS = [
         "temperature (°C)",
         #"chlorophyll (mg m-3)",
@@ -65,8 +62,8 @@ class Config:
         #"salinity (PSS-78)",
         "dissolved_oxygen (ml l-1)",
     ]
-    
-    # Colonnes utilisées UNIQUEMENT comme entrées (jamais prédites)
+
+    # Colonnes utilisées uniquement en entrée (jamais prédites)
     INPUT_ONLY_COLS = [
         "temperature (°C)",
         "chlorophyll (mg m-3)",
@@ -76,7 +73,7 @@ class Config:
         #"potential_density (kg m-3)",
         "dissolved_oxygen (ml l-1)",
         #"pressure (dbar)",
-        
+
         #------------------------------------
 
         "tide_range (m)",
@@ -89,19 +86,20 @@ class Config:
         #"Dir of Max Gust (10s deg)",
         "Spd of Max Gust (km/h)"
     ]
-    
+
     TIME_FEATURE_COLS = ["doy_sin", "doy_cos"]
 
-    # ── Méthode de décomposition ─────────────────────────────────────────────
+    # ── Méthode de décomposition ──────────────────────────────────────────────
     # Choisir : "VMD" | "CEEMDAN" | "SSA" | False (aucune décomposition)
     DECOMPOSITION_METHOD = "VMD"
 
+    # Colonnes sur lesquelles appliquer la décomposition
     DECOMPOSITION_COLS = ALL_TARGETS  # + INPUT_ONLY_COLS
 
-    # --- Output ---
-    OUTPUT_DIR = f"results/prediction/GRU/VMDxCNNxGRUxPINN/{AGG_METHOD}"
-    OUTPUT_PDF_TEMPLATE = f"{OUTPUT_DIR}/VMDxCNNxGRUxPINN_predictions_{AGG_METHOD}.pdf"
-    
+    # --- Sortie ---
+    OUTPUT_DIR          = f"results/prediction/v1/{AGG_METHOD}"
+    OUTPUT_PDF_TEMPLATE = f"{OUTPUT_DIR}/v1_predictions_{AGG_METHOD}.pdf"
+
     @classmethod
     def get_output_path(cls):
         os.makedirs(cls.OUTPUT_DIR, exist_ok=True)

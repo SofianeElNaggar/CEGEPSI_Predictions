@@ -11,157 +11,136 @@ from PyEMD import CEEMDAN
 from sklearn.preprocessing import StandardScaler
 
 def apply_vmd(df, config):
+    """Décompose les colonnes de config.DECOMPOSITION_COLS en modes VMD et les ajoute au DataFrame."""
     if config.DECOMPOSITION_METHOD != "VMD":
         return df
-    
+
     if VMD is None:
         print("VMD introuvable. Skip.")
         return df
 
     print("\n" + "-"*40)
     print("Traitement VMD...")
-    
-    # Parametres VMD
+
     alpha = config.VMD_ALPHA
-    tau = config.VMD_TAU
-    K = config.VMD_K
-    DC = config.VMD_DC
-    init = config.VMD_INIT
-    tol = config.VMD_TOL
-    
+    tau   = config.VMD_TAU
+    K     = config.VMD_K
+    DC    = config.VMD_DC
+    init  = config.VMD_INIT
+    tol   = config.VMD_TOL
+
     df_new = df.copy()
-    
+
     for col in config.DECOMPOSITION_COLS:
         if col not in df.columns:
             print(f"Colonne {col} absente pour VMD. Skip.")
             continue
-            
-        print(f" -> Decomposition VMD de '{col}' en {K} modes")
+
+        print(f" -> Décomposition VMD de '{col}' en {K} modes")
         f = df[col].values
-        
-        # VMD requires 1D array, even length preferred but not strictly required by python impl often?
-        # vmdpy: u, u_hat, omega = VMD(f, alpha, tau, K, DC, init, tol)
+
         try:
             u, u_hat, omega = VMD(f, alpha, tau, K, DC, init, tol)
-            
-            # u shape: (K, N)
+            # u shape : (K, N) — un mode par ligne
             for k in range(K):
-                mode_name = f"{col}_mode{k+1}"
-                df_new[mode_name] = u[k, :]
+                df_new[f"{col}_mode{k+1}"] = u[k, :]
         except Exception as e:
             print(f"Erreur VMD sur {col}: {e}")
-            
+
     print("-"*40 + "\n")
     return df_new
 
 def apply_ceemdan(df, config):
+    """Décompose les colonnes de config.DECOMPOSITION_COLS en IMFs CEEMDAN et les ajoute au DataFrame."""
     if config.DECOMPOSITION_METHOD != "CEEMDAN":
         return df
-    
+
     if CEEMDAN is None:
         print("CEEMDAN introuvable. Skip.")
         return df
 
     print("\n" + "-"*40)
     print("Traitement CEEMDAN...")
-    
-    # Parametres CEEMDAN
-    trials = getattr(config, 'CEEMDAN_TRIALS', 100)
-    epsilon = getattr(config, 'CEEMDAN_EPSILON', 0.2)
-    max_imfs = getattr(config, 'CEEMDAN_MAX_IMFS', None)
-    
+
+    trials   = config.CEEMDAN_TRIALS
+    epsilon  = config.CEEMDAN_EPSILON
+    max_imfs = config.CEEMDAN_MAX_IMFS
+
     df_new = df.copy()
-    
     ceemdan = CEEMDAN(trials=trials, epsilon=epsilon)
-    # Pour éviter trop de logs si PyEMD est verbeux
-    # ceemdan.verbose = False 
 
     for col in config.DECOMPOSITION_COLS:
         if col not in df.columns:
             print(f"Colonne {col} absente pour CEEMDAN. Skip.")
             continue
-            
-        print(f" -> Decomposition CEEMDAN de '{col}'")
+
+        print(f" -> Décomposition CEEMDAN de '{col}'")
         S = df[col].values
-        
-        # CEEMDAN: IMFs = ceemdan(S) => shape (n_imfs, n_samples)
+
         try:
-            # S doit être un tableau numpy 1D
             imfs = ceemdan(S)
-            
             n_found = imfs.shape[0]
-            
+
             if max_imfs is not None:
-                # Force exact number (pad or truncate)
+                # Tronque ou complète à max_imfs avec des zéros
                 for k in range(max_imfs):
-                    mode_name = f"{col}_mode{k+1}"
-                    if k < n_found:
-                        df_new[mode_name] = imfs[k, :]
-                    else:
-                        df_new[mode_name] = np.zeros_like(S)
+                    df_new[f"{col}_mode{k+1}"] = imfs[k, :] if k < n_found else np.zeros_like(S)
             else:
-                # Keep all found IMFs
                 for k in range(n_found):
-                     mode_name = f"{col}_mode{k+1}"
-                     df_new[mode_name] = imfs[k, :]
-                    
+                    df_new[f"{col}_mode{k+1}"] = imfs[k, :]
+
         except Exception as e:
             print(f"Erreur CEEMDAN sur {col}: {e}")
-            
+
     print("-"*40 + "\n")
     return df_new
 
 def apply_ssa(df, config):
+    """Décompose les colonnes de config.DECOMPOSITION_COLS en composantes SSA et les ajoute au DataFrame."""
     if config.DECOMPOSITION_METHOD != "SSA":
         return df
-    
+
     if SSA is None:
-        print("SSA introuvable (pysdkit missing). Skip.")
+        print("SSA introuvable (pysdkit manquant). Skip.")
         return df
 
     print("\n" + "-"*40)
     print("Traitement SSA...")
-    
-    # Parametres SSA
-    window_size = getattr(config, 'SSA_WINDOW', 365)
-    
+
+    window_size = config.SSA_WINDOW
     df_new = df.copy()
-    
-    # Initialize SSA
-    # SSA(lags=window_size)
     ssa = SSA(lags=window_size)
 
     for col in config.DECOMPOSITION_COLS:
         if col not in df.columns:
             print(f"Colonne {col} absente pour SSA. Skip.")
             continue
-            
-        print(f" -> Decomposition SSA de '{col}' (L={window_size})")
+
+        print(f" -> Décomposition SSA de '{col}' (L={window_size})")
         S = df[col].values
-        
+
         try:
-            # SSA fit_transform
-            # components shape: (K, n_samples) ideally, if not check transpose
             components = ssa.fit_transform(S)
-            
-            # Verify shape
-            if components.shape[0] == len(S) and components.shape[1] == n_components:
-                # Transpose needed to get (K, n_samples)
+
+            # Vérification de l'orientation : on s'attend à (K, n_samples)
+            if components.shape[0] == len(S):
                 components = components.T
-            
+
             n_found = components.shape[0]
-            
             for k in range(n_found):
-                mode_name = f"{col}_comp{k+1}"
-                df_new[mode_name] = components[k, :]
-                    
+                df_new[f"{col}_comp{k+1}"] = components[k, :]
+
         except Exception as e:
             print(f"Erreur SSA sur {col}: {e}")
-            
+
     print("-"*40 + "\n")
     return df_new
 
 def get_next_pdf_path(template_path_str):
+    """
+    Retourne un chemin PDF non conflictuel en incrémentant un suffixe numérique.
+    Ex. : rapport_1.pdf, rapport_2.pdf, …
+    """
     p = Path(template_path_str)
     if p.suffix.lower() != ".pdf":
         p = p.with_suffix(".pdf")
@@ -171,10 +150,7 @@ def get_next_pdf_path(template_path_str):
         pass
     base = p.stem
     m = re.match(r"^(.*?)(?:_(\d+))?$", base)
-    if m:
-        base_clean = m.group(1)
-    else:
-        base_clean = base
+    base_clean = m.group(1) if m else base
     pattern = re.compile(rf"^{re.escape(base_clean)}_(\d+)\.pdf$", re.IGNORECASE)
     max_n = 0
     try:
@@ -191,20 +167,19 @@ def get_next_pdf_path(template_path_str):
     except FileNotFoundError:
         max_n = 0
     next_n = max_n + 1
-    next_name = f"{base_clean}_{next_n}.pdf"
-    return str(p.parent / next_name)
+    return str(p.parent / f"{base_clean}_{next_n}.pdf")
 
 def load_and_filter(parquet_path, start_date, depth_center, depth_tol, target_cols):
+    """Charge le fichier parquet, filtre par date de début et par profondeur."""
     print("Chargement du fichier...", parquet_path)
     df = pd.read_parquet(parquet_path)
-    # Normalisation des noms de colonnes utilisés dans ce projet
-    # On suppose que le fichier a des colonnes 'time (UTC)' et 'depth (m)'
     df['time (UTC)'] = pd.to_datetime(df['time (UTC)'], errors='coerce', utc=True)
     if 'depth (m)' in df.columns:
         df['depth (m)'] = pd.to_numeric(df['depth (m)'], errors='coerce')
     for col in target_cols:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors='coerce')
+
     start_ts = pd.to_datetime(start_date, errors='coerce')
     if start_ts.tzinfo is None:
         start_ts = start_ts.tz_localize('UTC')
@@ -217,10 +192,11 @@ def load_and_filter(parquet_path, start_date, depth_center, depth_tol, target_co
         df = df[depth_mask]
         print(f"Filtrage profondeur: centre={depth_center} tol={depth_tol} -> {len(df)} lignes restantes")
     else:
-        print("Aucune colonne 'depth (m)' détectée; aucune sélection par profondeur appliquée.")
+        print("Aucune colonne 'depth (m)' détectée; aucun filtrage par profondeur appliqué.")
     return df
 
 def aggregate_daily(df, target_cols, agg_method='median'):
+    """Agrège les mesures sub-journalières en valeurs journalières (médiane ou moyenne)."""
     df2 = df.copy()
     df2['date'] = df2['time (UTC)'].dt.floor('D')
     if agg_method == 'median':
@@ -231,12 +207,17 @@ def aggregate_daily(df, target_cols, agg_method='median'):
     return agg
 
 def reindex_and_impute(daily_df, start, end):
+    """Réindexe sur une grille journalière continue et interpole les valeurs manquantes."""
     idx = pd.date_range(start=start, end=end - pd.Timedelta(days=1), freq='D', tz='UTC')
     daily = daily_df.reindex(idx)
-    daily_inter = daily.interpolate(method='time', limit_direction='both')
-    return daily_inter
+    return daily.interpolate(method='time', limit_direction='both')
 
 def create_sequences_multivar(values, seq_len, target_cols_count):
+    """
+    Crée des séquences glissantes (X, y) pour l'entraînement du modèle.
+    X[i] = values[i : i+seq_len]  (toutes les features)
+    y[i] = values[i+seq_len, :target_cols_count]  (cibles du pas suivant)
+    """
     n = values.shape[0]
     n_features = values.shape[1]
     n_samples = n - seq_len
@@ -250,6 +231,7 @@ def create_sequences_multivar(values, seq_len, target_cols_count):
     return X, y
 
 def add_time_features(df_):
+    """Ajoute les encodages sinusoïdaux du jour de l'année (doy_sin, doy_cos)."""
     df = df_.copy()
     doy = df.index.dayofyear
     df['doy_sin'] = np.sin(2 * np.pi * doy / 365.25)

@@ -10,14 +10,14 @@ from pinns import CosSinPINN, DissolvedOxygenPINN, pHPINN
 
 def main():
     try:
-        # 1. Configuration
+        # Chargement de la configuration
         config = Config()
-        
-        # 2. Data Preparation
+
+        # Préparation des données (décomposition, normalisation, séquences)
         dm = DataManager(config)
         dm.prepare_data(target_cols=config.ALL_TARGETS)
-        
-        # 3. Model Initialization
+
+        # Initialisation du modèle CNN-GRU
         model = CNNGRUModel(
             n_features=dm.n_features,
             n_outputs=dm.n_outputs,
@@ -26,10 +26,8 @@ def main():
             dropout=0.2,
             cnn_out_channels=64
         )
-        
-        # 4. PINN Setup
-        # Define PINNs here or in a factory.
-        # Make sure variable names match exactly what's in Config/Data
+
+        # Définition des contraintes physiques (PINNs)
         pinns = [
             CosSinPINN(
                 'doy_sin',
@@ -37,12 +35,11 @@ def main():
                 in_targets=False,
                 weight=config.PINN_WEIGHTS.get('doy')
             ),
-            # Add other PINNs if targets are present
         ]
-        
+
         if "dissolved_oxygen (ml l-1)" in dm.target_cols:
-             pinns.append(
-                 DissolvedOxygenPINN(
+            pinns.append(
+                DissolvedOxygenPINN(
                     do_name="dissolved_oxygen (ml l-1)",
                     temp_water_name="temperature (°C)",
                     temp_air_name="Mean Temp (°C)",
@@ -51,12 +48,12 @@ def main():
                     sal_name="salinity (PSS-78)",
                     tide_name="tide_range (m)",
                     weight=config.PINN_WEIGHTS.get('dissolved_oxygen')
-                 )
-             )
-        
+                )
+            )
+
         if "pHa" in dm.target_cols:
-             pinns.append(
-                 pHPINN(
+            pinns.append(
+                pHPINN(
                     ph_name="pH",
                     temp_water_name="temperature (°C)",
                     sal_name="salinity (PSS-78)",
@@ -65,23 +62,23 @@ def main():
                     wind_name="Spd of Max Gust (km/h)",
                     tide_name="tide_range (m)",
                     weight=config.PINN_WEIGHTS.get('ph')
-                 )
-             )
+                )
+            )
 
-        # 5. Training
+        # Entraînement
         trainer = Trainer(model, config, pinns=pinns)
         trainer.train(
-            dm.train_loader, 
-            dm.val_loader, 
+            dm.train_loader,
+            dm.val_loader,
             feature_cols=dm.feature_cols,
             target_names=dm.target_cols,
             scaler_y=dm.scaler_y
         )
-        
-        # 6. Evaluation
+
+        # Évaluation et génération du rapport PDF
         evaluator = Evaluator(model, dm, config)
         evaluator.evaluate()
-        
+
     except Exception as e:
         print("Erreur critique dans le main:")
         traceback.print_exc()
