@@ -28,13 +28,21 @@ class Config:
     # --- Prediction ---
     RECURSIVE_FORECAST = True
 
-    # VMD Hyperparameters
+    # ── VMD Hyperparameters ─────────────────────────────────────────────────
     VMD_ALPHA = 2000       # Bandwidth constraint
-    VMD_TAU = 0.01         # Noise-tolerance
-    VMD_K = 8              # Number of modes
-    VMD_DC = 0             # No DC part imposed
-    VMD_INIT = 0           # Initialize omegas uniformly
-    VMD_TOL = 1e-7         # Convergence tolerance
+    VMD_TAU   = 0.01       # Noise-tolerance
+    VMD_K     = 8          # Number of modes
+    VMD_DC    = 0          # No DC part imposed
+    VMD_INIT  = 0          # Initialize omegas uniformly
+    VMD_TOL   = 1e-7       # Convergence tolerance
+
+    # ── CEEMDAN Hyperparameters ──────────────────────────────────────────────
+    CEEMDAN_TRIALS   = 100   # Nombre d'essais (ensembles)
+    CEEMDAN_EPSILON  = 0.2   # Amplitude du bruit ajouté (fraction de std)
+    CEEMDAN_MAX_IMFS = None  # Nombre max d'IMFs (None = toutes)
+
+    # ── SSA Hyperparameters ──────────────────────────────────────────────────
+    SSA_WINDOW = 365         # Taille de la fenêtre de Hankel (lags)
     
     # --- Weights (Loss) ---
     # Global weights
@@ -84,9 +92,11 @@ class Config:
     
     TIME_FEATURE_COLS = ["doy_sin", "doy_cos"]
 
-    # --- VMD Configuration ---
-    VMD_ENABLED = True
-    VMD_COLS = ALL_TARGETS# + INPUT_ONLY_COLS
+    # ── Méthode de décomposition ─────────────────────────────────────────────
+    # Choisir : "VMD" | "CEEMDAN" | "SSA" | False (aucune décomposition)
+    DECOMPOSITION_METHOD = "VMD"
+
+    DECOMPOSITION_COLS = ALL_TARGETS  # + INPUT_ONLY_COLS
 
     # --- Output ---
     OUTPUT_DIR = f"results/prediction/GRU/VMDxCNNxGRUxPINN/{AGG_METHOD}"

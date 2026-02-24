@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset
+from CNN import CNNFeatureExtractor
 
 class SeqDataset(Dataset):
     def __init__(self, X, y):
@@ -29,7 +30,6 @@ class GRUModel(nn.Module):
         out = self.fc(last)
         return out
 
-from CNN import CNNFeatureExtractor
 
 class CNNGRUModel(nn.Module):
     def __init__(self, n_features, cnn_out_channels=64, hidden_size=128, hidden2=64, n_outputs=1, dropout=0.2):

@@ -11,7 +11,7 @@ from PyEMD import CEEMDAN
 from sklearn.preprocessing import StandardScaler
 
 def apply_vmd(df, config):
-    if not config.VMD_ENABLED:
+    if config.DECOMPOSITION_METHOD != "VMD":
         return df
     
     if VMD is None:
@@ -31,7 +31,7 @@ def apply_vmd(df, config):
     
     df_new = df.copy()
     
-    for col in config.VMD_COLS:
+    for col in config.DECOMPOSITION_COLS:
         if col not in df.columns:
             print(f"Colonne {col} absente pour VMD. Skip.")
             continue
@@ -55,7 +55,7 @@ def apply_vmd(df, config):
     return df_new
 
 def apply_ceemdan(df, config):
-    if not config.CEEMDAN_ENABLED:
+    if config.DECOMPOSITION_METHOD != "CEEMDAN":
         return df
     
     if CEEMDAN is None:
@@ -76,7 +76,7 @@ def apply_ceemdan(df, config):
     # Pour éviter trop de logs si PyEMD est verbeux
     # ceemdan.verbose = False 
 
-    for col in config.CEEMDAN_COLS:
+    for col in config.DECOMPOSITION_COLS:
         if col not in df.columns:
             print(f"Colonne {col} absente pour CEEMDAN. Skip.")
             continue
@@ -112,7 +112,7 @@ def apply_ceemdan(df, config):
     return df_new
 
 def apply_ssa(df, config):
-    if not config.SSA_ENABLED:
+    if config.DECOMPOSITION_METHOD != "SSA":
         return df
     
     if SSA is None:
@@ -131,7 +131,7 @@ def apply_ssa(df, config):
     # SSA(lags=window_size)
     ssa = SSA(lags=window_size)
 
-    for col in config.SSA_COLS:
+    for col in config.DECOMPOSITION_COLS:
         if col not in df.columns:
             print(f"Colonne {col} absente pour SSA. Skip.")
             continue

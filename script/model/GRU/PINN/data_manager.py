@@ -7,7 +7,8 @@ from sklearn.preprocessing import StandardScaler
 
 from data_utils import (
     load_and_filter, aggregate_daily, reindex_and_impute,
-    add_time_features, create_sequences_multivar, apply_vmd
+    add_time_features, create_sequences_multivar,
+    apply_vmd, apply_ceemdan, apply_ssa
 )
 from model import SeqDataset # We might need to move SeqDataset or import it
 
@@ -67,19 +68,37 @@ class DataManager:
         if daily_full.index.tz is None:
              daily_full.index = daily_full.index.tz_localize('UTC')
 
-        # 4. Feature Engineering
-        daily_full = apply_vmd(daily_full, self.config)
-        
-        self.daily_full_tf = add_time_features(daily_full)
-        
-        # Identification des colonnes VMD
-        vmd_cols = []
-        if self.config.VMD_ENABLED:
-            for col in self.config.VMD_COLS:
+        # 4. Feature Engineering — décomposition de signal
+        method = self.config.DECOMPOSITION_METHOD
+        decomp_cols = []
+
+        if method == "VMD":
+            daily_full = apply_vmd(daily_full, self.config)
+            for col in self.config.DECOMPOSITION_COLS:
                 for k in range(self.config.VMD_K):
-                    vmd_cols.append(f"{col}_mode{k+1}")
-        
-        self.feature_cols = list(target_cols) + list(self.config.INPUT_ONLY_COLS) + list(self.config.TIME_FEATURE_COLS) + vmd_cols
+                    decomp_cols.append(f"{col}_mode{k+1}")
+
+        elif method == "CEEMDAN":
+            daily_full = apply_ceemdan(daily_full, self.config)
+            n_imfs = self.config.CEEMDAN_MAX_IMFS
+            if n_imfs is not None:
+                for col in self.config.DECOMPOSITION_COLS:
+                    for k in range(n_imfs):
+                        decomp_cols.append(f"{col}_mode{k+1}")
+            else:
+                # Nombre inconnu à l'avance : détecté depuis les colonnes générées
+                for col in self.config.DECOMPOSITION_COLS:
+                    decomp_cols += [c for c in daily_full.columns if c.startswith(f"{col}_mode")]
+
+        elif method == "SSA":
+            daily_full = apply_ssa(daily_full, self.config)
+            for col in self.config.DECOMPOSITION_COLS:
+                decomp_cols += [c for c in daily_full.columns if c.startswith(f"{col}_comp")]
+
+        # method == False : aucun traitement, decomp_cols reste vide
+
+        self.daily_full_tf = add_time_features(daily_full)
+        self.feature_cols = list(target_cols) + list(self.config.INPUT_ONLY_COLS) + list(self.config.TIME_FEATURE_COLS) + decomp_cols
         
         train_df_tf = self.daily_full_tf[self.daily_full_tf.index < self.train_end_dt]
         self.test_df = self.daily_full_tf[(self.daily_full_tf.index >= self.train_end_dt) & (self.daily_full_tf.index < test_end_dt)]

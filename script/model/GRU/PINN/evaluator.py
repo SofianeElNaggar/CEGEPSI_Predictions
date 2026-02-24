@@ -114,7 +114,8 @@ class Evaluator:
             rmses, 
             r2s, 
             train_df, 
-            test_df
+            test_df,
+            config=self.config
         )
         print(f"Rapport PDF généré : {output_path}")
 
