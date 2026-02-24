@@ -26,6 +26,16 @@ class Config:
     # --- Mode de prédiction ---
     RECURSIVE_FORECAST = True  # True : récursif (pas d'observations futures), False : walk-forward
 
+    # ── Architecture du modèle ────────────────────────────────────────────────
+    RNN_TYPE = "GRU"   # Cellule récurrente : "GRU" | "LSTM"
+    USE_CNN  = True    # True : CNN devant le RNN, False : RNN seul
+
+    # Hyperparamètres du modèle
+    HIDDEN_SIZE      = 128
+    HIDDEN_SIZE_2    = 64
+    DROPOUT          = 0.2
+    CNN_OUT_CHANNELS = 64   # Nombre de filtres CNN (ignoré si USE_CNN = False)
+
     # ── Hyperparamètres VMD ────────────────────────────────────────────────────
     VMD_ALPHA = 2000       # Contrainte de bande passante
     VMD_TAU   = 0.01       # Tolérance au bruit
@@ -48,7 +58,7 @@ class Config:
 
     # Poids individuels par contrainte physique
     PINN_WEIGHTS = {
-        'doy':              1.0,
+        'doy':              0.0,
         'dissolved_oxygen': 1.0,
         'ph':               1.0
     }

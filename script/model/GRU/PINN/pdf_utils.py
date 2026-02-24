@@ -42,6 +42,21 @@ def save_results_pdf(out_template, target_cols, feature_cols, dates, true_target
                 bx, by, br2 = best_params[col]
                 txt += f" - {col}: RMSE={rmses[col]:.4f}, R2={r2s[col]:.4f}  (x={bx:.6f}, y={by:.6f}, R2_opt={br2:.6f})\n"
 
+            # --- Bloc architecture du modèle ---
+            if config is not None:
+                rnn  = getattr(config, 'RNN_TYPE', 'GRU')
+                cnn  = getattr(config, 'USE_CNN', False)
+                nom  = f"{'CNN-' if cnn else ''}{rnn}"
+                txt += "\n" + "-"*50 + "\n"
+                txt += f"Architecture du modèle : {nom}\n"
+                txt += f"  RNN_TYPE         : {rnn}\n"
+                txt += f"  USE_CNN          : {cnn}\n"
+                txt += f"  hidden_size      : {getattr(config, 'HIDDEN_SIZE', '?')}\n"
+                txt += f"  hidden_size_2    : {getattr(config, 'HIDDEN_SIZE_2', '?')}\n"
+                txt += f"  dropout          : {getattr(config, 'DROPOUT', '?')}\n"
+                if cnn:
+                    txt += f"  cnn_out_channels : {getattr(config, 'CNN_OUT_CHANNELS', '?')}\n"
+
             # --- Bloc décomposition de signal ---
             if config is not None:
                 method = getattr(config, 'DECOMPOSITION_METHOD', False)

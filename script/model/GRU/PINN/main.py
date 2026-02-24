@@ -3,7 +3,7 @@ import traceback
 import torch
 from config import Config
 from data_manager import DataManager
-from model import CNNGRUModel
+from model import CNNGRUModel, CNNLSTMModel, GRUModel, LSTMModel
 from trainer import Trainer
 from evaluator import Evaluator
 from pinns import CosSinPINN, DissolvedOxygenPINN, pHPINN
@@ -17,15 +17,42 @@ def main():
         dm = DataManager(config)
         dm.prepare_data(target_cols=config.ALL_TARGETS)
 
-        # Initialisation du modèle CNN-GRU
-        model = CNNGRUModel(
-            n_features=dm.n_features,
-            n_outputs=dm.n_outputs,
-            hidden_size=128,
-            hidden2=64,
-            dropout=0.2,
-            cnn_out_channels=64
-        )
+        # Instanciation du modèle selon config.RNN_TYPE et config.USE_CNN
+        if config.USE_CNN and config.RNN_TYPE == "GRU":
+            model = CNNGRUModel(
+                n_features=dm.n_features,
+                n_outputs=dm.n_outputs,
+                hidden_size=config.HIDDEN_SIZE,
+                hidden2=config.HIDDEN_SIZE_2,
+                dropout=config.DROPOUT,
+                cnn_out_channels=config.CNN_OUT_CHANNELS
+            )
+        elif config.USE_CNN and config.RNN_TYPE == "LSTM":
+            model = CNNLSTMModel(
+                n_features=dm.n_features,
+                n_outputs=dm.n_outputs,
+                hidden_size=config.HIDDEN_SIZE,
+                hidden2=config.HIDDEN_SIZE_2,
+                dropout=config.DROPOUT,
+                cnn_out_channels=config.CNN_OUT_CHANNELS
+            )
+        elif config.RNN_TYPE == "LSTM":
+            model = LSTMModel(
+                n_features=dm.n_features,
+                n_outputs=dm.n_outputs,
+                hidden_size=config.HIDDEN_SIZE,
+                hidden2=config.HIDDEN_SIZE_2,
+                dropout=config.DROPOUT
+            )
+        else:  # GRU par défaut
+            model = GRUModel(
+                n_features=dm.n_features,
+                n_outputs=dm.n_outputs,
+                hidden_size=config.HIDDEN_SIZE,
+                hidden2=config.HIDDEN_SIZE_2,
+                dropout=config.DROPOUT
+            )
+        print(f"Modèle : {'CNN-' if config.USE_CNN else ''}{config.RNN_TYPE}")
 
         # Définition des contraintes physiques (PINNs)
         pinns = [

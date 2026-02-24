@@ -16,6 +16,21 @@ class SeqDataset(Dataset):
     def __getitem__(self, idx):
         return self.X[idx], self.y[idx]
 
+class LSTMModel(nn.Module):
+    """LSTM à deux couches pour la prédiction multivariée (sans CNN)."""
+    def __init__(self, n_features, hidden_size=128, hidden2=64, n_outputs=1, dropout=0.2):
+        super().__init__()
+        self.lstm1 = nn.LSTM(input_size=n_features, hidden_size=hidden_size, batch_first=True)
+        self.lstm2 = nn.LSTM(input_size=hidden_size, hidden_size=hidden2, batch_first=True)
+        self.dropout = nn.Dropout(dropout)
+        self.fc = nn.Linear(hidden2, n_outputs)
+
+    def forward(self, x):
+        out, _ = self.lstm1(x)
+        out, _ = self.lstm2(out)
+        last = self.dropout(out[:, -1, :])
+        return self.fc(last)
+
 class GRUModel(nn.Module):
     """GRU à deux couches pour la prédiction multivariée (sans CNN)."""
     def __init__(self, n_features, hidden_size=128, hidden2=64, n_outputs=1, dropout=0.2):
@@ -30,7 +45,6 @@ class GRUModel(nn.Module):
         out, _ = self.gru2(out)
         last = self.dropout(out[:, -1, :])
         return self.fc(last)
-
 
 class CNNGRUModel(nn.Module):
     """
@@ -56,6 +70,34 @@ class CNNGRUModel(nn.Module):
 
         out, _ = self.gru1(cnn_out)
         out, _ = self.gru2(out)
+        last = self.dropout(out[:, -1, :])
+        return self.fc(last)
+
+
+class CNNLSTMModel(nn.Module):
+    """
+    Architecture CNN → LSTM pour la prédiction de séries temporelles multivariées.
+    Le CNN extrait des caractéristiques locales sur l'axe temporel avant le LSTM.
+    """
+    def __init__(self, n_features, cnn_out_channels=64, hidden_size=128, hidden2=64, n_outputs=1, dropout=0.2):
+        super().__init__()
+        self.cnn   = CNNFeatureExtractor(n_features, out_channels=cnn_out_channels)
+        self.lstm1 = nn.LSTM(input_size=cnn_out_channels, hidden_size=hidden_size, batch_first=True)
+        self.lstm2 = nn.LSTM(input_size=hidden_size, hidden_size=hidden2, batch_first=True)
+        self.dropout = nn.Dropout(dropout)
+        self.fc = nn.Linear(hidden2, n_outputs)
+
+    def forward(self, x):
+        # x : (batch, seq_len, n_features)
+        cnn_out = self.cnn(x)
+
+        if not hasattr(self, '_printed'):
+            print("x shape:", x.shape)
+            print("cnn_out shape:", cnn_out.shape)
+            self._printed = True
+
+        out, _ = self.lstm1(cnn_out)
+        out, _ = self.lstm2(out)
         last = self.dropout(out[:, -1, :])
         return self.fc(last)
 
