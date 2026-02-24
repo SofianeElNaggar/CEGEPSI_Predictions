@@ -32,7 +32,7 @@ def save_results_pdf(out_template, target_cols, feature_cols, dates, true_target
             # --- Page 2 : résumé textuel ---
             fig_sum = plt.figure(figsize=(8.27, 11.69))
             fig_sum.clf()
-            txt = "Résultats GRU multivarié (après correction OLS)\n\n"
+            txt = "Résultats RNN multivarié (après correction OLS)\n\n"
             txt += f"Entrées uniquement : \n{feature_cols[:5]}\n{feature_cols[5:]}\n\n"
             txt += f"Entrées + sorties : {target_cols}\n\n"
             txt += f"Période entraînement : {train_df.index.min().date()} -> {train_df.index.max().date()}\n"

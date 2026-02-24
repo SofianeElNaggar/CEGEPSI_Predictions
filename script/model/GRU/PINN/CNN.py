@@ -4,7 +4,7 @@ import torch.nn as nn
 
 class CNNFeatureExtractor(nn.Module):
     """
-    Extracteur de caractéristiques par convolution 1D appliqué avant le GRU.
+    Extracteur de caractéristiques par convolution 1D appliqué avant le RNN.
     Opère sur l'axe temporel tout en conservant la longueur de séquence (padding='same').
     """
     def __init__(self, n_features, out_channels=64, kernel_size=3, padding='same'):
@@ -24,6 +24,6 @@ class CNNFeatureExtractor(nn.Module):
         x = x.permute(0, 2, 1)
         out = self.conv1(x)
         out = self.relu(out)
-        # Retour au format GRU : (batch, seq_len, out_channels)
+        # Retour au format RNN : (batch, seq_len, out_channels)
         out = out.permute(0, 2, 1)
         return out

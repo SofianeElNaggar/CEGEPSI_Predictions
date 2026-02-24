@@ -20,7 +20,7 @@ class Trainer:
             if isinstance(p, nn.Module):
                 p.to(self.device)
 
-        # Optimiseur commun : paramètres du GRU-CNN + paramètres appris des PINNs
+        # Optimiseur commun : paramètres du RNN-CNN + paramètres appris des PINNs
         self.params = list(model.parameters())
         for p in self.pinns:
             if isinstance(p, nn.Module):

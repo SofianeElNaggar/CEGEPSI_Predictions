@@ -27,7 +27,7 @@ class Config:
     RECURSIVE_FORECAST = True  # True : récursif (pas d'observations futures), False : walk-forward
 
     # ── Architecture du modèle ────────────────────────────────────────────────
-    RNN_TYPE = "GRU"   # Cellule récurrente : "GRU" | "LSTM"
+    RNN_TYPE = "LSTM"   # Cellule récurrente : "GRU" | "LSTM"
     USE_CNN  = True    # True : CNN devant le RNN, False : RNN seul
 
     # Hyperparamètres du modèle
@@ -101,7 +101,7 @@ class Config:
 
     # ── Méthode de décomposition ──────────────────────────────────────────────
     # Choisir : "VMD" | "CEEMDAN" | "SSA" | False (aucune décomposition)
-    DECOMPOSITION_METHOD = "VMD"
+    DECOMPOSITION_METHOD = "SSA"
 
     # Colonnes sur lesquelles appliquer la décomposition
     DECOMPOSITION_COLS = ALL_TARGETS  # + INPUT_ONLY_COLS
