@@ -53,7 +53,7 @@ class Config:
     SSA_WINDOW = 365         # Taille de la fenêtre de Hankel (en jours)
 
     # --- Poids de la fonction de perte ---
-    GRU_LOSS_WEIGHT  = 3.0   # Poids de la perte MSE du GRU
+    RNN_LOSS_WEIGHT  = 3.0   # Poids de la perte MSE du RNN
     PINN_LOSS_WEIGHT = 1.0   # Multiplicateur global de la perte PINN
 
     # Poids individuels par contrainte physique

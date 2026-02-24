@@ -61,8 +61,8 @@ class Trainer:
                 self.optimizer.zero_grad()
                 out = self.model(xb)
 
-                # Perte GRU (MSE pondérée)
-                loss = weighted_mse_loss(out, yb, w) * self.config.GRU_LOSS_WEIGHT
+                # Perte RNN (MSE pondérée)
+                loss = weighted_mse_loss(out, yb, w) * self.config.RNN_LOSS_WEIGHT
 
                 # Perte PINN (somme des résidus physiques)
                 pinn_loss_sum = 0.0
@@ -95,7 +95,7 @@ class Trainer:
                     yb = yb.to(self.device)
 
                     out = self.model(xb)
-                    loss = weighted_mse_loss(out, yb, w) * self.config.GRU_LOSS_WEIGHT
+                    loss = weighted_mse_loss(out, yb, w) * self.config.RNN_LOSS_WEIGHT
 
                     pinn_loss_sum = 0.0
                     for pinn in self.pinns:

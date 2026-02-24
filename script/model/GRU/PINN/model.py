@@ -73,7 +73,6 @@ class CNNGRUModel(nn.Module):
         last = self.dropout(out[:, -1, :])
         return self.fc(last)
 
-
 class CNNLSTMModel(nn.Module):
     """
     Architecture CNN → LSTM pour la prédiction de séries temporelles multivariées.
@@ -100,7 +99,6 @@ class CNNLSTMModel(nn.Module):
         out, _ = self.lstm2(out)
         last = self.dropout(out[:, -1, :])
         return self.fc(last)
-
 
 def weighted_mse_loss(pred, target, weights):
     """MSE pondérée par cible, utile pour équilibrer des variables sur des échelles différentes."""
