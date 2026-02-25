@@ -1,9 +1,27 @@
 # config.py
 import os
 
+def _env_bool(key: str, default: bool) -> bool:
+    """Lit une variable d'environnement et la convertit en booléen."""
+    val = os.environ.get(key)
+    if val is None:
+        return default
+    return val.strip().lower() in ("true", "1", "yes")
+
+def _env_str(key: str, default: str) -> str:
+    """Lit une variable d'environnement (str), retourne le défaut si absente."""
+    return os.environ.get(key, default)
+
+def _env_decomp(key: str, default) -> object:
+    """Lit DECOMPOSITION_METHOD : renvoie False si la valeur est 'false', sinon la str."""
+    val = os.environ.get(key)
+    if val is None:
+        return default
+    return False if val.strip().lower() == "false" else val.strip()
+
 class Config:
     # ── Chemins ───────────────────────────────────────────────────────────────
-    PARQUET_PATH = "dataset/OMDS-CTD-meteogc-data.parquet"
+    PARQUET_PATH = "../../../dataset/OMDS-CTD-meteogc-data.parquet"
 
     # ── Prétraitement ─────────────────────────────────────────────────────────
     DEPTH_CENTER    = 1.0    # Profondeur cible (m)
@@ -27,8 +45,9 @@ class Config:
     RECURSIVE_FORECAST = True  # True : récursif (pas d'observations futures), False : walk-forward
 
     # ── Architecture du modèle ────────────────────────────────────────────────
-    RNN_TYPE = "LSTM"   # Cellule récurrente : "GRU" | "LSTM"
-    USE_CNN  = True    # True : CNN devant le RNN, False : RNN seul
+    # Surchargeables via variables d'environnement : PINN_RNN_TYPE, PINN_USE_CNN
+    RNN_TYPE = _env_str("PINN_RNN_TYPE", "GRU")   # Cellule récurrente : "GRU" | "LSTM"
+    USE_CNN  = _env_bool("PINN_USE_CNN",  True)    # True : CNN devant le RNN, False : RNN seul
 
     # Hyperparamètres du modèle
     HIDDEN_SIZE      = 128
@@ -101,14 +120,15 @@ class Config:
 
     # ── Méthode de décomposition ──────────────────────────────────────────────
     # Choisir : "VMD" | "CEEMDAN" | "SSA" | False (aucune décomposition)
-    DECOMPOSITION_METHOD = "SSA"
+    # Surchargeables via variable d'environnement : PINN_DECOMPOSITION_METHOD
+    DECOMPOSITION_METHOD = _env_decomp("PINN_DECOMPOSITION_METHOD", "VMD")
 
     # ── Colonnes sur lesquelles appliquer la décomposition ─────────────────────
     DECOMPOSITION_COLS = ALL_TARGETS  # + INPUT_ONLY_COLS
 
     # ── Sortie ────────────────────────────────────────────────────────────────
-    OUTPUT_DIR          = f"results/prediction/v1/{AGG_METHOD}"
-    OUTPUT_PDF_TEMPLATE = f"{OUTPUT_DIR}/v1_predictions_{AGG_METHOD}.pdf"
+    OUTPUT_DIR          = f"../../../results/prediction/{RNN_TYPE}_CNN:{USE_CNN}/{DECOMPOSITION_METHOD}/{AGG_METHOD}"
+    OUTPUT_PDF_TEMPLATE = f"{OUTPUT_DIR}/predictions.pdf"
 
     @classmethod
     def get_output_path(cls):
