@@ -21,7 +21,7 @@ def _env_decomp(key: str, default) -> object:
 
 class Config:
     # ── Chemins ───────────────────────────────────────────────────────────────
-    PARQUET_PATH = "../../../dataset/OMDS-CTD-meteogc-data.parquet"
+    PARQUET_PATH = "../../dataset/OMDS-CTD-meteogc-data.parquet"
 
     # ── Prétraitement ─────────────────────────────────────────────────────────
     DEPTH_CENTER    = 1.0    # Profondeur cible (m)
@@ -127,7 +127,7 @@ class Config:
     DECOMPOSITION_COLS = ALL_TARGETS  # + INPUT_ONLY_COLS
 
     # ── Sortie ────────────────────────────────────────────────────────────────
-    OUTPUT_DIR          = f"../../../results/prediction/{RNN_TYPE}_CNN:{USE_CNN}/{DECOMPOSITION_METHOD}/{AGG_METHOD}"
+    OUTPUT_DIR          = f"../../results/prediction/{RNN_TYPE}_CNN:{USE_CNN}/{DECOMPOSITION_METHOD}/{AGG_METHOD}"
     OUTPUT_PDF_TEMPLATE = f"{OUTPUT_DIR}/predictions.pdf"
 
     @classmethod

@@ -20,7 +20,7 @@ set -euo pipefail
 
 # ── Répertoires ───────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"   # racine de CEGEPSI_Predictions
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"   # racine de CEGEPSI_Predictions
 VENV_PYTHON="$PROJECT_ROOT/venv/bin/python"
 
 # ── Paramètres (avec valeurs par défaut) ─────────────────────────────────────
@@ -54,6 +54,12 @@ if [[ ! -f "$VENV_PYTHON" ]]; then
     exit 1
 fi
 
+# ── Vérification de l'existence de main.py ───────────────────────────────────
+if [[ ! -f "$SCRIPT_DIR/main.py" ]]; then
+    echo "[ERREUR] main.py introuvable dans : $SCRIPT_DIR"
+    exit 1
+fi
+
 # ── Affichage du résumé ───────────────────────────────────────────────────────
 echo "============================================================"
 echo " Lancement du PINN"
@@ -65,11 +71,11 @@ echo "  Python              = $VENV_PYTHON"
 echo "  Répertoire          = $SCRIPT_DIR"
 echo "============================================================"
 
-# ── Lancement ─────────────────────────────────────────────────────────────────
-cd "$SCRIPT_DIR"
-
+# ── Export des variables d'environnement ──────────────────────────────────────
 export PINN_RNN_TYPE="$RNN_TYPE"
 export PINN_USE_CNN="$USE_CNN"
 export PINN_DECOMPOSITION_METHOD="$DECOMPOSITION_METHOD"
 
+# ── Lancement ─────────────────────────────────────────────────────────────────
+cd "$SCRIPT_DIR"
 "$VENV_PYTHON" main.py
