@@ -2,20 +2,20 @@
 import os
 
 class Config:
-    # --- Chemins ---
+    # ── Chemins ───────────────────────────────────────────────────────────────
     PARQUET_PATH = "dataset/OMDS-CTD-meteogc-data.parquet"
 
-    # --- Prétraitement ---
+    # ── Prétraitement ─────────────────────────────────────────────────────────
     DEPTH_CENTER    = 1.0    # Profondeur cible (m)
     DEPTH_TOLERANCE = 0.1    # Tolérance autour de la profondeur cible
     AGG_METHOD      = "mean" # Méthode d'agrégation journalière : 'mean' ou 'median'
 
-    # --- Période temporelle ---
+    # ── Période temporelle ────────────────────────────────────────────────────
     START_DATE = "2000-01-01"
     TRAIN_END  = "2020-01-01"
     TEST_END   = "2025-01-01"
 
-    # --- Hyperparamètres d'entraînement ---
+    # ── Hyperparamètres d'entraînement ────────────────────────────────────────
     SEQUENCE_LENGTH = 60
     N_EPOCHS        = 60
     BATCH_SIZE      = 64
@@ -23,7 +23,7 @@ class Config:
     PATIENCE        = 8
     VALIDATION_FRAC = 0.15
 
-    # --- Mode de prédiction ---
+    # ── Mode de prédiction ────────────────────────────────────────────────────
     RECURSIVE_FORECAST = True  # True : récursif (pas d'observations futures), False : walk-forward
 
     # ── Architecture du modèle ────────────────────────────────────────────────
@@ -52,18 +52,18 @@ class Config:
     # ── Hyperparamètres SSA ───────────────────────────────────────────────────
     SSA_WINDOW = 365         # Taille de la fenêtre de Hankel (en jours)
 
-    # --- Poids de la fonction de perte ---
+    # ── Poids de la fonction de perte ──────────────────────────────────────────
     RNN_LOSS_WEIGHT  = 3.0   # Poids de la perte MSE du RNN
     PINN_LOSS_WEIGHT = 1.0   # Multiplicateur global de la perte PINN
 
-    # Poids individuels par contrainte physique
+    # ── Poids individuels par contrainte physique ──────────────────────────────
     PINN_WEIGHTS = {
         'doy':              0.0,
         'dissolved_oxygen': 1.0,
         'ph':               1.0
     }
 
-    # --- Variables cibles et d'entrée ---
+    # ── Variables cibles et d'entrée ───────────────────────────────────────────
     ALL_TARGETS = [
         "temperature (°C)",
         #"chlorophyll (mg m-3)",
@@ -73,7 +73,7 @@ class Config:
         "dissolved_oxygen (ml l-1)",
     ]
 
-    # Colonnes utilisées uniquement en entrée (jamais prédites)
+    # ── Colonnes utilisées uniquement en entrée (jamais prédites) ───────────────
     INPUT_ONLY_COLS = [
         "temperature (°C)",
         "chlorophyll (mg m-3)",
@@ -103,10 +103,10 @@ class Config:
     # Choisir : "VMD" | "CEEMDAN" | "SSA" | False (aucune décomposition)
     DECOMPOSITION_METHOD = "SSA"
 
-    # Colonnes sur lesquelles appliquer la décomposition
+    # ── Colonnes sur lesquelles appliquer la décomposition ─────────────────────
     DECOMPOSITION_COLS = ALL_TARGETS  # + INPUT_ONLY_COLS
 
-    # --- Sortie ---
+    # ── Sortie ────────────────────────────────────────────────────────────────
     OUTPUT_DIR          = f"results/prediction/v1/{AGG_METHOD}"
     OUTPUT_PDF_TEMPLATE = f"{OUTPUT_DIR}/v1_predictions_{AGG_METHOD}.pdf"
 
