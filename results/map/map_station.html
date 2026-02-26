@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Carte stations météo — filtre années & province</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- MarkerCluster -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster-src.js"></script>
+
+  <!-- PapaParse -->
+  <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <!-- noUiSlider -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.js"></script>
+
+  <style>
+    body { margin:0; font-family: Arial, Helvetica, sans-serif; }
+    #top { padding:12px; display:flex; gap:14px; align-items:center; background:#f5f7fa; flex-wrap:wrap; }
+    #map { height: calc(100vh - 170px); background: #eef; }
+    .info { font-size:0.95rem; color:#222; }
+    .small { font-size:0.85rem; color:#666; }
+    #controls { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    #slider { width:420px; margin-left:8px; }
+    #stats { margin-left:12px; font-size:0.9rem; }
+    #errorBox { padding:10px; background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; margin:8px; display:none; max-width:100%; }
+    #debug { padding:8px; background:#fff3cd; color:#856404; border:1px solid #ffeeba; margin:8px; display:none }
+    select, button, input[type=file] { font-size:0.95rem; }
+    .control-col { display:flex; flex-direction:column; gap:6px; }
+  </style>
+</head>
+<body>
+  <div id="top">
+    <div class="control-col">
+      <label class="info"><strong>Fichier CSV :</strong></label>
+      <input id="fileInput" type="file" accept=".csv,text/csv" />
+      <span class="small">(1ère ligne = noms de colonnes)</span>
+    </div>
+
+    <div class="control-col" id="controls">
+      <div>
+        <label class="info">Plage d'années (First Year — Last Year)</label>
+        <div id="slider"></div>
+      </div>
+
+      <div class="control-col">
+        <label class="info">Filtrer par province</label>
+        <select id="provinceFilter"><option value="__all__">Toutes</option></select>
+      </div>
+
+      <div class="control-col">
+        <label class="info">Options</label>
+        <div style="display:flex;gap:8px;">
+          <button id="resetView">Reset vue</button>
+          <button id="downloadVisible">Télécharger visibles (CSV)</button>
+        </div>
+      </div>
+
+      <div id="stats" class="small">Stations chargées: <span id="loaded">0</span> — Affichées: <span id="shown">0</span></div>
+    </div>
+  </div>
+
+  <div id="debug">Debug: bibliothèques chargées.</div>
+  <div id="errorBox"></div>
+
+  <div id="map"></div>
+
+  <script>
+    // --- UI & error helpers ---
+    const errorBox = document.getElementById('errorBox');
+    function showError(msg) {
+      errorBox.style.display = 'block';
+      errorBox.innerText = msg;
+      console.error(msg);
+    }
+    function clearError() { errorBox.style.display='none'; errorBox.innerText=''; }
+
+    window.addEventListener('error', function (e) { showError('Erreur JS: ' + (e.message || e)); });
+    window.addEventListener('unhandledrejection', function (e) { showError('Promise rejection: ' + (e.reason && e.reason.message ? e.reason.message : e.reason)); });
+
+    // quick libs check
+    function checkLibs() {
+      const debug = document.getElementById('debug');
+      let msgs = [];
+      if (typeof L === 'undefined') msgs.push('Leaflet non chargé (L absent). ');
+      if (typeof Papa === 'undefined') msgs.push('PapaParse non chargé (Papa absent). ');
+      if (typeof noUiSlider === 'undefined') msgs.push('noUiSlider non chargé. ');
+      if (msgs.length === 0) {
+        debug.style.display='none';
+        return true;
+      } else {
+        showError('Bibliothèques manquantes: ' + msgs.join(''));
+        return false;
+      }
+    }
+    if (!checkLibs()) throw new Error('Bibliothèques manquantes.');
+
+    // === Map setup ===
+    const map = L.map('map').setView([50, -95], 3);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '© OpenStreetMap' }).addTo(map);
+    const markersLayer = L.markerClusterGroup({ chunkedLoading: true, showCoverageOnHover: false });
+    map.addLayer(markersLayer);
+
+    const fileInput = document.getElementById('fileInput');
+    const loadedSpan = document.getElementById('loaded');
+    const shownSpan = document.getElementById('shown');
+    const provinceSelect = document.getElementById('provinceFilter');
+    const resetBtn = document.getElementById('resetView');
+    const downloadVisibleBtn = document.getElementById('downloadVisible');
+    const sliderDiv = document.getElementById('slider');
+
+    resetBtn.onclick = () => {
+      const all = markersLayer.getLayers().map(m => m.getLatLng());
+      if (all.length) {
+        map.fitBounds(L.latLngBounds(all));
+      } else {
+        map.setView([50, -95], 3);
+      }
+    };
+
+    // data storage
+    let headers = null;
+    let rawRows = []; // original rows (array of strings)
+    let stations = []; // parsed station objects
+    let provincesSet = new Set();
+    let currentYearRange = [null, null];
+    let sliderControl = null;
+
+    // Utility: normalize header keys
+    function norm(h) {
+      if (!h) return '';
+      return h.toLowerCase().replace(/[().]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+    }
+
+    // Heuristic to parse coordinate values — returns null if cannot
+    function parseCoordinate(val) {
+      if (val === null || val === undefined) return null;
+      const s = String(val).trim();
+      if (s === '') return null;
+      // try direct decimal
+      const asNum = Number(s);
+      if (!isNaN(asNum) && Math.abs(asNum) <= 90 && Math.abs(asNum) >= 0) return asNum;
+      // sometimes commas used
+      const sComma = s.replace(',', '.');
+      const asNum2 = Number(sComma);
+      if (!isNaN(asNum2) && Math.abs(asNum2) <= 90) return asNum2;
+      // sometimes integer scaled: try dividing by 1e6, 1e5, 1e4
+      const n = Number(s);
+      if (!isNaN(n)) {
+        for (const scale of [1e6, 1e5, 1e4, 1e3]) {
+          const cand = n / scale;
+          if (Math.abs(cand) <= 90) return cand;
+        }
+      }
+      // DMS-ish? not handled
+      return null;
+    }
+
+    function parseLon(val) {
+      if (val === null || val === undefined) return null;
+      const s = String(val).trim();
+      const asNum = Number(s);
+      if (!isNaN(asNum) && Math.abs(asNum) <= 180) return asNum;
+      const sComma = s.replace(',', '.');
+      const asNum2 = Number(sComma);
+      if (!isNaN(asNum2) && Math.abs(asNum2) <= 180) return asNum2;
+      const n = Number(s);
+      if (!isNaN(n)) {
+        for (const scale of [1e6, 1e5, 1e4, 1e3]) {
+          const cand = n / scale;
+          if (Math.abs(cand) <= 180) return cand;
+        }
+      }
+      return null;
+    }
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function updateStats() {
+      loadedSpan.textContent = stations.length.toLocaleString();
+      shownSpan.textContent = markersLayer.getLayers().length.toLocaleString();
+    }
+
+    function makePopup(st) {
+      const lines = [];
+      lines.push(`<strong>${escapeHtml(st.name || '')}</strong>`);
+      if (st.province) lines.push(`Province: ${escapeHtml(st.province)}`);
+      if (st['station id']) lines.push(`Station ID: ${escapeHtml(st['station id'] || '')}`);
+      if (st['wmo id']) lines.push(`WMO ID: ${escapeHtml(st['wmo id'] || '')}`);
+      if (st.elevation !== null && st.elevation !== undefined) lines.push(`Élévation: ${escapeHtml(String(st.elevation))} m`);
+      if (st.first_year || st.last_year) {
+        lines.push(`Années: ${st.first_year || '?'} — ${st.last_year || '?'}`);
+      }
+      lines.push(`Lat: ${st.lat.toFixed(5)} — Lon: ${st.lon.toFixed(5)}`);
+      return lines.join('<br/>');
+    }
+
+    function addStationMarker(st) {
+      const marker = L.circleMarker([st.lat, st.lon], { radius: 5 });
+      marker.bindPopup(makePopup(st));
+      // attach station data for potential CSV download/filtering
+      marker.stationData = st;
+      markersLayer.addLayer(marker);
+    }
+
+    function refreshMarkers() {
+      markersLayer.clearLayers();
+      const [yrMin, yrMax] = currentYearRange;
+      const provinceFilter = provinceSelect.value;
+      for (const st of stations) {
+        // filter by province
+        if (provinceFilter !== '__all__' && (st.province || '').toLowerCase() !== provinceFilter) continue;
+        // filter by year overlap: station considered visible if station.last_year >= yrMin AND station.first_year <= yrMax
+        const sy = st.first_year !== null && !isNaN(Number(st.first_year)) ? Number(st.first_year) : null;
+        const ey = st.last_year !== null && !isNaN(Number(st.last_year)) ? Number(st.last_year) : null;
+        if (yrMin !== null && yrMax !== null) {
+          // require at least some overlap
+          const overlap = (ey === null || ey >= yrMin) && (sy === null || sy <= yrMax);
+          if (!overlap) continue;
+        }
+        addStationMarker(st);
+      }
+      updateStats();
+    }
+
+    // setup province dropdown
+    function populateProvinceSelect() {
+      const arr = Array.from(provincesSet).sort((a,b)=>a.localeCompare(b));
+      // clear existing except __all__
+      provinceSelect.innerHTML = '<option value="__all__">Toutes</option>';
+      for (const p of arr) {
+        if (p === '' || p === null) continue;
+        const opt = document.createElement('option');
+        opt.value = p.toLowerCase();
+        opt.textContent = p;
+        provinceSelect.appendChild(opt);
+      }
+    }
+
+    provinceSelect.addEventListener('change', () => {
+      refreshMarkers();
+    });
+
+    // slider helpers
+    function setupYearSlider(minY, maxY) {
+      if (sliderControl) sliderControl.destroy();
+      const minVal = Math.floor(minY);
+      const maxVal = Math.ceil(maxY);
+      sliderControl = noUiSlider.create(sliderDiv, {
+        start: [minVal, maxVal],
+        connect: true,
+        step: 1,
+        range: { min: minVal, max: maxVal },
+        tooltips: [true, true],
+        format: {
+          to: v => Math.round(v).toString(),
+          from: v => Number(v)
+        }
+      });
+      currentYearRange = [minVal, maxVal];
+      sliderControl.on('update', function(values, handle, unencoded) {
+        const a = Math.round(unencoded[0]);
+        const b = Math.round(unencoded[1]);
+        currentYearRange = [a, b];
+        refreshMarkers();
+      });
+    }
+
+    // CSV download of visible markers
+    function downloadCSVVisible() {
+      const visibleMarkers = markersLayer.getLayers();
+      if (!visibleMarkers.length) {
+        alert('Aucun point visible à télécharger.');
+        return;
+      }
+      const hdrs = headers || ['Name','Province','Latitude (Decimal Degrees)','Longitude (Decimal Degrees)','Elevation (m)','Station ID','WMO ID','First Year','Last Year'];
+      // compose CSV rows using stationData recorded on marker
+      const csvRows = [];
+      csvRows.push(hdrs.join(','));
+      for (const m of visibleMarkers) {
+        const s = m.stationData || {};
+        const row = [];
+        // try to match original header names if available
+        row.push('"'+(s.name||'')+'"');
+        row.push('"'+(s.province||'')+'"');
+        row.push((s.lat!==undefined && s.lat!==null)?s.lat:'');
+        row.push((s.lon!==undefined && s.lon!==null)?s.lon:'');
+        row.push(s.elevation || '');
+        row.push(s['station id'] || '');
+        row.push(s['wmo id'] || '');
+        row.push(s.first_year || '');
+        row.push(s.last_year || '');
+        csvRows.push(row.join(','));
+      }
+      const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'stations_visible.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    downloadVisibleBtn.onclick = downloadCSVVisible;
+
+    // MAIN: parse CSV selected file
+    fileInput.addEventListener('change', (ev) => {
+      clearError();
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      headers = null;
+      rawRows = [];
+      stations = [];
+      provincesSet.clear();
+      markersLayer.clearLayers();
+      updateStats();
+
+      Papa.parse(file, {
+        delimiter: ',', newline: '',
+        skipEmptyLines: true,
+        worker: false,
+        step: function(result, parser) {
+          const row = result.data;
+          if (!row || row.length === 0) return;
+          rawRows.push(row);
+        },
+        complete: function() {
+          if (!rawRows.length) { showError('Fichier vide ou non lu.'); return; }
+          // first row = headers
+          headers = rawRows[0].map(h => (h||'').trim());
+          const headerMap = {};
+          headers.forEach((h,i) => headerMap[norm(h)] = i);
+          // Determine column candidates
+          // keys we attempt to read (lowercased normalized):
+          // name, province, station id, wmo id, latitude decimal degrees, longitude decimal degrees, latitude, longitude, elevation (m), first year, last year
+          const keyNames = {
+            name: ['name','station name'],
+            province: ['province','prov'],
+            station_id: ['station id','stationid','station_id','stationid.'],
+            wmo_id: ['wmo id','wmoid','wmo'],
+            lat_dec: ['latitude decimal degrees','latitude (decimal degrees)','latitude decimal','latitude_deg','latitude'],
+            lon_dec: ['longitude decimal degrees','longitude (decimal degrees)','longitude decimal','longitude_deg','longitude'],
+            lat: ['latitude'],
+            lon: ['longitude'],
+            elevation: ['elevation (m)','elevation m','elevation','elevation(m)'],
+            first_year: ['first year','firstyear','first_year'],
+            last_year: ['last year','lastyear','last_year']
+          };
+
+          function findIdx(candidates) {
+            for (const c of candidates) {
+              const k = norm(c);
+              if (headerMap.hasOwnProperty(k)) return headerMap[k];
+            }
+            return undefined;
+          }
+
+          const idx = {
+            name: findIdx(keyNames.name),
+            province: findIdx(keyNames.province),
+            station_id: findIdx(keyNames.station_id),
+            wmo_id: findIdx(keyNames.wmo_id),
+            lat_dec: findIdx(keyNames.lat_dec),
+            lon_dec: findIdx(keyNames.lon_dec),
+            lat: findIdx(keyNames.lat),
+            lon: findIdx(keyNames.lon),
+            elevation: findIdx(keyNames.elevation),
+            first_year: findIdx(keyNames.first_year),
+            last_year: findIdx(keyNames.last_year)
+          };
+
+          // validate we have at least some lat/lon columns
+          if (idx.lat_dec === undefined && (idx.lat === undefined || idx.lon === undefined) && (idx.lon_dec === undefined)) {
+            showError('Colonnes de coordonnées introuvables. Requises: "Latitude (Decimal Degrees)" et "Longitude (Decimal Degrees)" ou "Latitude" / "Longitude". Vérifie la 1ère ligne du CSV.');
+            return;
+          }
+
+          // parse data rows (from row index 1 onward)
+          let minYear = Infinity, maxYear = -Infinity;
+          for (let r = 1; r < rawRows.length; r++) {
+            const row = rawRows[r];
+            // guard row length
+            // produce object with keys
+            const getCell = (i) => (i !== undefined && i < row.length) ? (row[i]||'').trim() : '';
+
+            const name = getCell(idx.name) || getCell(idx.station_id) || '';
+            const province = getCell(idx.province) || '';
+            const stationid = getCell(idx.station_id) || '';
+            const wmoid = getCell(idx.wmo_id) || '';
+            const elevation = getCell(idx.elevation) || '';
+            // choose coords preferring decimal degrees columns
+            let latRaw = idx.lat_dec !== undefined ? getCell(idx.lat_dec) : (idx.lat !== undefined ? getCell(idx.lat) : '');
+            let lonRaw = idx.lon_dec !== undefined ? getCell(idx.lon_dec) : (idx.lon !== undefined ? getCell(idx.lon) : '');
+            if ((!latRaw || !lonRaw) && idx.lat !== undefined && idx.lon !== undefined) {
+              latRaw = getCell(idx.lat);
+              lonRaw = getCell(idx.lon);
+            }
+            const lat = parseCoordinate(latRaw);
+            const lon = parseLon(lonRaw);
+            const firstYearRaw = getCell(idx.first_year);
+            const lastYearRaw = getCell(idx.last_year);
+            const firstYear = firstYearRaw === '' ? null : (isFinite(Number(firstYearRaw)) ? Number(firstYearRaw) : null);
+            const lastYear = lastYearRaw === '' ? null : (isFinite(Number(lastYearRaw)) ? Number(lastYearRaw) : null);
+
+            if (lat === null || lon === null) {
+              // skip station if no usable coordinates
+              continue;
+            }
+
+            const st = {
+              name: name,
+              province: province,
+              'station id': stationid,
+              'wmo id': wmoid,
+              elevation: elevation,
+              lat: lat,
+              lon: lon,
+              first_year: firstYear,
+              last_year: lastYear,
+              raw: row
+            };
+
+            stations.push(st);
+            if (province) provincesSet.add(province);
+            if (firstYear !== null) { minYear = Math.min(minYear, firstYear); maxYear = Math.max(maxYear, firstYear); }
+            if (lastYear !== null) { minYear = Math.min(minYear, lastYear); maxYear = Math.max(maxYear, lastYear); }
+          }
+
+          if (!stations.length) { showError('Aucune station valide trouvée (coordonnées manquantes ou non interprétables).'); return; }
+
+          // populate province dropdown
+          populateProvinceSelect();
+
+          // set up slider based on min/max year if available; otherwise use reasonable defaults
+          if (!isFinite(minYear) || !isFinite(maxYear)) {
+            // try to infer from possible values: use 1900..(current year)
+            const cy = (new Date()).getFullYear();
+            minYear = 1900;
+            maxYear = cy;
+          }
+          setupYearSlider(minYear, maxYear);
+
+          // add markers (batch for responsiveness)
+          const batchSize = 2000;
+          let i = 0;
+          function addBatch() {
+            const end = Math.min(stations.length, i + batchSize);
+            for (; i < end; i++) addStationMarker(stations[i]);
+            updateStats();
+            if (i < stations.length) setTimeout(addBatch, 30);
+            else {
+              // fit to bounds
+              const latlngs = stations.map(s => [s.lat, s.lon]);
+              const bounds = L.latLngBounds(latlngs);
+              if (bounds.isValid()) map.fitBounds(bounds);
+            }
+          }
+          addBatch();
+        },
+        error: function(err) {
+          showError('Erreur lors du parsing: ' + (err && err.message ? err.message : String(err)));
+        }
+      });
+    });
+
+    // final log
+    console.log('Page stations météo prête.');
+  </script>
+
+  <!-- NOTE:
+    - Le script essaie d'utiliser "Latitude (Decimal Degrees)" et "Longitude (Decimal Degrees)".
+    - Si les coordonnées sont fournies sous forme d'entiers (ex: 465013000), le script tente automatiquement
+      de les re-scalér (1e6, 1e5, 1e4, 1e3) jusqu'à obtenir une valeur plausible.
+    - Colonnes reconnues (exemples): Name, Province, Station ID, WMO ID, Latitude (Decimal Degrees), Longitude (Decimal Degrees), Latitude, Longitude, Elevation (m), First Year, Last Year.
+  -->
+</body>
+</html>

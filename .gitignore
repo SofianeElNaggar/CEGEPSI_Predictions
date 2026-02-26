@@ -1,8 +1,6 @@
 # Fichiers de données volumineux
 *.csv
 *.parquet
-*.pdf
-*.png
 *.rar
 *.zip
 *.xml
@@ -70,10 +68,6 @@ out/
 .cursorrules
 .cursorignore
 
-# Résultats et outputs
-results/
-output/
-*.log
 
 # Données et datasets
 dataset/
