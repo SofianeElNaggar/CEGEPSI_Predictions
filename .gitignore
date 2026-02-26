@@ -68,6 +68,10 @@ out/
 .cursorrules
 .cursorignore
 
+# Résultats et outputs
+results/
+output/
+*.log
 
 # Données et datasets
 dataset/
