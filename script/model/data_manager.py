@@ -48,57 +48,65 @@ class DataManager:
             self.config.START_DATE,
             self.config.DEPTH_CENTER,
             self.config.DEPTH_TOLERANCE,
-            target_cols
+            target_cols,
+            use_depth_filter=self.config.USE_PREPROCESSING
         )
         if df.empty:
             raise ValueError("Aucune donnée après filtres.")
 
-        # 2. Agrégation journalière
+        # 2. Gestion de la fréquence temporelle
         agg_cols = list(set(target_cols + self.config.INPUT_ONLY_COLS))
-        daily = aggregate_daily(df, agg_cols, agg_method=self.config.AGG_METHOD)
-        if daily.empty:
-            raise ValueError("Aucune donnée après agrégation journalière.")
+        if self.config.USE_PREPROCESSING:
+            # Agrégation journalière forcée
+            data_df = aggregate_daily(df, agg_cols, agg_method=self.config.AGG_METHOD)
+            freq = 'D'
+        else:
+            # On garde les données brutes, mais on s'assure qu'elles sont indexées par temps et triées
+            df = df.set_index('time (UTC)').sort_index()
+            data_df = df[agg_cols]
+            freq = None
+        
+        if data_df.empty:
+            raise ValueError("Aucune donnée après filtrage/agrégation.")
 
-        # 3. Réindexation et imputation
+        # 3. Réindexation (si nécessaire) et imputation
         self.train_end_dt = pd.to_datetime(self.config.TRAIN_END).tz_localize('UTC')
         test_end_dt = pd.to_datetime(self.config.TEST_END).tz_localize('UTC')
-        start = daily.index.min().tz_localize('UTC') if daily.index.min().tzinfo is None else daily.index.min()
+        start = data_df.index.min().tz_localize('UTC') if data_df.index.min().tzinfo is None else data_df.index.min()
 
-        daily = daily[daily.index < test_end_dt]
-        daily_full = reindex_and_impute(daily, start, test_end_dt)
-        if daily_full.index.tz is None:
-            daily_full.index = daily_full.index.tz_localize('UTC')
+        data_df = data_df[data_df.index < test_end_dt]
+        data_full = reindex_and_impute(data_df, start, test_end_dt, freq=freq)
+        if data_full.index.tz is None:
+            data_full.index = data_full.index.tz_localize('UTC')
 
         # 4. Décomposition de signal et ingénierie des features
         method = self.config.DECOMPOSITION_METHOD
         decomp_cols = []
 
         if method == "VMD":
-            daily_full = apply_vmd(daily_full, self.config)
+            data_full = apply_vmd(data_full, self.config)
             for col in self.config.DECOMPOSITION_COLS:
                 for k in range(self.config.VMD_K):
                     decomp_cols.append(f"{col}_mode{k+1}")
 
         elif method == "CEEMDAN":
-            daily_full = apply_ceemdan(daily_full, self.config)
+            data_full = apply_ceemdan(data_full, self.config)
             n_imfs = self.config.CEEMDAN_MAX_IMFS
             if n_imfs is not None:
                 for col in self.config.DECOMPOSITION_COLS:
                     for k in range(n_imfs):
                         decomp_cols.append(f"{col}_mode{k+1}")
             else:
-                # Nombre d'IMFs inconnu à l'avance : détecté depuis les colonnes générées
+                # Nombre d'IMFs inconnu à l'avance
                 for col in self.config.DECOMPOSITION_COLS:
-                    decomp_cols += [c for c in daily_full.columns if c.startswith(f"{col}_mode")]
+                    decomp_cols += [c for c in data_full.columns if c.startswith(f"{col}_mode")]
 
         elif method == "SSA":
-            daily_full = apply_ssa(daily_full, self.config)
+            data_full = apply_ssa(data_full, self.config)
             for col in self.config.DECOMPOSITION_COLS:
-                decomp_cols += [c for c in daily_full.columns if c.startswith(f"{col}_comp")]
+                decomp_cols += [c for c in data_full.columns if c.startswith(f"{col}_comp")]
 
-        # method == False : aucun traitement, decomp_cols reste vide
-
-        self.daily_full_tf = add_time_features(daily_full)
+        self.daily_full_tf = add_time_features(data_full)
         self.feature_cols = list(target_cols) + list(self.config.INPUT_ONLY_COLS) + list(self.config.TIME_FEATURE_COLS) + decomp_cols
 
         train_df_tf = self.daily_full_tf[self.daily_full_tf.index < self.train_end_dt]

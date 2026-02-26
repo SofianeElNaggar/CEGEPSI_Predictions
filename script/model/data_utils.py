@@ -169,7 +169,7 @@ def get_next_pdf_path(template_path_str):
     next_n = max_n + 1
     return str(p.parent / f"{base_clean}_{next_n}.pdf")
 
-def load_and_filter(parquet_path, start_date, depth_center, depth_tol, target_cols):
+def load_and_filter(parquet_path, start_date, depth_center, depth_tol, target_cols, use_depth_filter=True):
     """Charge le fichier parquet, filtre par date de début et par profondeur."""
     print("Chargement du fichier...", parquet_path)
     df = pd.read_parquet(parquet_path)
@@ -188,9 +188,12 @@ def load_and_filter(parquet_path, start_date, depth_center, depth_tol, target_co
     df = df[df['time (UTC)'] >= start_ts]
 
     if 'depth (m)' in df.columns:
-        depth_mask = df['depth (m)'].notna() & (np.abs(df['depth (m)'] - depth_center) <= depth_tol)
-        df = df[depth_mask]
-        print(f"Filtrage profondeur: centre={depth_center} tol={depth_tol} -> {len(df)} lignes restantes")
+        if use_depth_filter:
+            depth_mask = df['depth (m)'].notna() & (np.abs(df['depth (m)'] - depth_center) <= depth_tol)
+            df = df[depth_mask]
+            print(f"Filtrage profondeur: centre={depth_center} tol={depth_tol} -> {len(df)} lignes restantes")
+        else:
+            print("Prétraitement désactivé : toutes les profondeurs sont conservées.")
     else:
         print("Aucune colonne 'depth (m)' détectée; aucun filtrage par profondeur appliqué.")
     return df
@@ -206,11 +209,12 @@ def aggregate_daily(df, target_cols, agg_method='median'):
     agg.index = pd.to_datetime(agg.index)
     return agg
 
-def reindex_and_impute(daily_df, start, end):
-    """Réindexe sur une grille journalière continue et interpole les valeurs manquantes."""
-    idx = pd.date_range(start=start, end=end - pd.Timedelta(days=1), freq='D', tz='UTC')
-    daily = daily_df.reindex(idx)
-    return daily.interpolate(method='time', limit_direction='both')
+def reindex_and_impute(df, start, end, freq='D'):
+    """Réindexe sur une grille temporelle continue (si freq est fourni) et interpole les valeurs manquantes."""
+    if freq is not None:
+        idx = pd.date_range(start=start, end=end - pd.Timedelta(seconds=1), freq=freq, tz='UTC')
+        df = df.reindex(idx)
+    return df.interpolate(method='time', limit_direction='both')
 
 def create_sequences_multivar(values, seq_len, target_cols_count):
     """

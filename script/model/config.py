@@ -24,9 +24,10 @@ class Config:
     PARQUET_PATH = "../../dataset/OMDS-CTD-meteogc-data.parquet"
 
     # ── Prétraitement ─────────────────────────────────────────────────────────
-    DEPTH_CENTER    = 1.0    # Profondeur cible (m)
-    DEPTH_TOLERANCE = 0.1    # Tolérance autour de la profondeur cible
-    AGG_METHOD      = "mean" # Méthode d'agrégation journalière : 'mean' ou 'median'
+    DEPTH_CENTER      = 1.0    # Profondeur cible (m)
+    DEPTH_TOLERANCE   = 0.1    # Tolérance autour de la profondeur cible
+    AGG_METHOD        = "mean" # Méthode d'agrégation journalière : 'mean' ou 'median'
+    USE_PREPROCESSING = True   # Activer/Désactiver le filtrage profondeur et l'agrégation spécifique /!\ Ne pas désactiver avec le data set OGSL
 
     # ── Période temporelle ────────────────────────────────────────────────────
     START_DATE = "2000-01-01"
@@ -127,7 +128,7 @@ class Config:
     DECOMPOSITION_COLS = ALL_TARGETS  # + INPUT_ONLY_COLS
 
     # ── Sortie ────────────────────────────────────────────────────────────────
-    OUTPUT_DIR          = f"../../results/prediction/{RNN_TYPE}_CNN:{USE_CNN}/{DECOMPOSITION_METHOD}/{AGG_METHOD}"
+    OUTPUT_DIR          = f"../../results/prediction/{RNN_TYPE}_CNN:{USE_CNN}/{DECOMPOSITION_METHOD}/{'preproc_' + AGG_METHOD if USE_PREPROCESSING else 'raw_data'}"
     OUTPUT_PDF_TEMPLATE = f"{OUTPUT_DIR}/predictions.pdf"
 
     @classmethod
